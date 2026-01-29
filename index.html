@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Portal</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
+        
+        /* AUTH STYLES (Conservados del original) */
+        #authContainer { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #2c3e50; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .login-card input { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; }
+        .login-card button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .login-card button:hover { background: #2980b9; }
+
+        /* MENU STYLES (Nuevos) */
+        #menuContent { display: none; min-height: 100vh; padding: 40px 20px; box-sizing: border-box; }
+        .container { max-width: 1000px; margin: 0 auto; text-align: center; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; border-bottom: 1px solid #ddd; padding-bottom: 20px; }
+        .logout-btn { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: #c0392b; }
+
+        /* Grid de Botones */
+        .nav-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 30px; 
+            margin-top: 20px; 
+        }
+
+        .nav-card {
+            background: white;
+            padding: 40px 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-decoration: none;
+            color: #2c3e50;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-top: 5px solid #ccc;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .nav-card h3 { margin: 15px 0 10px 0; font-size: 1.4em; }
+        .nav-card p { color: #7f8c8d; margin: 0; font-size: 0.95em; }
+        .icon { font-size: 3em; margin-bottom: 10px; }
+
+        /* Colores Específicos por tarjeta */
+        .card-billing { border-color: #2ecc71; } /* Verde */
+        .card-jobs { border-color: #3498db; }    /* Azul */
+        .card-apps { border-color: #9b59b6; }    /* Morado */
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div id="authContainer">
+        <div class="login-card">
+            <h2>🔐 Portal Access</h2>
+            <p style="color: #666; margin-bottom: 20px;">Enter your credentials</p>
+            <input type="email" id="authEmail" placeholder="Email">
+            <input type="password" id="authPassword" placeholder="Password">
+            <button onclick="handleLogin()">Sign In</button>
+            <p id="loginError" style="color: red; margin-top: 10px; font-size: 0.9em;"></p>
+        </div>
+    </div>
+
+    <div id="menuContent">
+        <div class="container">
+            <div class="header-bar">
+                <div style="text-align: left;">
+                    <h1 style="margin:0; color:#2c3e50;">Welcome Back</h1>
+                    <p style="margin:5px 0 0 0; color:#666;">Select a module to continue</p>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            </div>
+
+            <div class="nav-grid">
+                
+                <a href="index3.html" class="nav-card card-billing">
+                    <div class="icon">💰</div>
+                    <h3>Billing Information</h3>
+                    <p>Revenue dashboards & financial records</p>
+                </a>
+
+                <a href="index2.html" class="nav-card card-jobs">
+                    <div class="icon">👔</div>
+                    <h3>Job Openings</h3>
+                    <p>Recruiting performance & open roles</p>
+                </a>
+
+                <a href="index0.html" class="nav-card card-apps">
+                    <div class="icon">📄</div>
+                    <h3>Applications</h3>
+                    <p>Candidate applications management</p>
+                </a>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. CONFIGURACIÓN SUPABASE (Tus credenciales)
+        // ==========================================
+        const SUPABASE_URL = 'https://lmgpsbkbfeetdcgjxlbd.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_cWlfcyK-hFgRqKyId7V32A_fp72fDNt';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ==========================================
+        // 2. LOGIC & AUTH
+        // ==========================================
+        
+        // Verificar sesión al cargar
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const authContainer = document.getElementById('authContainer');
+            const menuContent = document.getElementById('menuContent');
+
+            if (session) {
+                // Si hay sesión, ocultar login y mostrar menú
+                authContainer.style.display = 'none';
+                menuContent.style.display = 'block';
+            } else {
+                // Si no hay sesión, mostrar login
+                authContainer.style.display = 'flex';
+                menuContent.style.display = 'none';
+            }
+        }
+
+        // Manejar Login
+        async function handleLogin() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const errorMsg = document.getElementById('loginError');
+            
+            if (!email || !password) {
+                errorMsg.textContent = "Please enter email and password";
+                return;
+            }
+
+            errorMsg.textContent = "Authenticating...";
+            
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                errorMsg.textContent = error.message;
+            } else {
+                // Login exitoso, checkSession se encargará del cambio de UI
+                window.location.reload(); 
+            }
+        }
+
+        // Manejar Logout
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        }
+
+        // Inicializar listener
+        document.addEventListener('DOMContentLoaded', () => {
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                checkSession();
+            });
+            checkSession();
+        });
+    </script>
+</body>
+</html>
