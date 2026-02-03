@@ -237,7 +237,6 @@ function renderTable(data) {
             }
         }
 
-        // --- CÁLCULOS DE DINERO ---
         let cleanComp = 0;
         if(item.compensation && item.compensation !== '-') {
              cleanComp = parseFloat(String(item.compensation).replace(/[^0-9.-]+/g,"")) || 0;
@@ -248,9 +247,19 @@ function renderTable(data) {
 
         let revenueDisplay = '-';
         if (cleanComp > 0) {
-            const revenue = (cleanComp * 12) * feePercent;
+            // 1. Calculamos el valor teórico
+            let revenue = (cleanComp * 12) * feePercent;
+
+            // 2. Aplicamos el mínimo de 3,500
+            // Si el cálculo es menor a 3500, Math.max elegirá 3500.
+            revenue = Math.max(revenue, 3500);
+
+            // 3. Formateamos para mostrar
             revenueDisplay = revenue.toLocaleString('en-US', { 
-                style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 
+                style: 'currency', 
+                currency: 'USD', 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 0 
             });
         }
 

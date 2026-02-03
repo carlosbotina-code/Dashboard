@@ -26,38 +26,46 @@
     <div id="dashboardContent" style="display: none;">
         
         <div style="max-width: 1400px; margin: 0 auto; text-align: right; padding: 10px 20px;">
-            <button class="home-btn" onclick="window.location.href='index.html'">🏠 Home</button>
             <button onclick="handleLogout()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Logout</button>
         </div>
 
         <div class="container">
             <div class="header">
-                <h1>🎯 Zoho Recruit Applications Dashboard</h1>
+                <h1>Zoho Recruit Applications Dashboard</h1>
                 <p>Real-time candidate management and tracking system</p>
             </div>
-
+            <!--
             <div class="stats">
                 <div class="stat-card">
                     <h3 id="totalApps">0</h3>
                     <p>Total Applications</p>
                 </div>
                 <div class="stat-card">
-                    <h3 id="newApps">0</h3> <p>New Applications</p>
+                    <h3 id="activePipeline">0</h3>
+                    <p>Active Pipeline</p> 
                 </div>
                 <div class="stat-card">
-                    <h3 id="qualifiedApps">0</h3> <p>Qualified Candidates</p>
+                    <h3 id="hiredCount">0</h3>
+                    <p>Hired Candidates</p>
                 </div>
                 <div class="stat-card">
-                    <h3 id="avgExperience">0</h3>
-                    <p>AVG Exp. (Years)</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="linkedinRate">0%</h3>
-                    <p>LinkedIn Reach</p>
+                    <h3 id="conversionRate">0%</h3>
+                    <p>Conversion Rate</p>
                 </div>
                 <div class="stat-card">
                     <h3 id="lastSync">---</h3>
                     <p>Last Sync</p>
+                </div>
+            </div>
+            -->
+            <div class="zoho-wrapper" style="margin-top: 30px;">
+                               
+                <div class="zoho-card">
+                    <iframe 
+                        src="https://analytics.zoho.com/open-view/3137624000000238743/2410301b12b3794aeb7eba833e2d1838704d158fc15319faf2b3adc3236f3b9d" 
+                        class="zoho-iframe"
+                        allowtransparency="true">
+                    </iframe>
                 </div>
             </div>
 
@@ -69,50 +77,44 @@
 
             <div class="controls">
                 <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Search by name, email, or phone...">
+                    <input type="text" id="searchInput" placeholder="Search by name, email, client or job...">
                 </div>
                 <div class="filter-group">
-                <select id="statusFilter">
-                    <option value="">All Statuses</option>
-                    <option value="New">New</option>
-                    <option value="Contacted">Contacted</option>
-                    <option value="Qualified">Qualified</option>
-                    <option value="Rejected">Rejected</option>
-                </select>                
+                    <select id="statusFilter">
+                        <option value="">All Statuses</option>
+                    </select>                
 
-                <select id="clientFilter">
-                    <option value="">All Clients</option>
-                </select>
+                    <select id="clientFilter">
+                        <option value="">All Clients</option>
+                    </select>
 
-                <select id="stageFilter">
-                    <option value="">All Stages</option>
-                </select>                
+                    <select id="stageFilter">
+                        <option value="">All Recruiters</option>
+                    </select>                
 
-                <button onclick="loadApplications()">🔄 Refresh</button>
+                    <button onclick="loadAllData()">🔄 Refresh</button>
                  </div>
             </div>
 
             <div id="errorMessage"></div>
             <div id="loadingMessage" class="loading">
                 <div class="spinner"></div>
-                <p>Loading applications...</p>
+                <p>Loading application data...</p>
             </div>
 
             <div class="table-container" id="tableContainer" style="display: none;">
                 <table>
                     <thead>
                         <tr>
-                            <th>Actions</th>
-                            <th>Candidate Name</th>                            
-                            <th>Client Name</th>                            
+                            <th>Action</th>
+                            <th>Candidate / Position</th>
+                            <th>Client</th>
                             <th>Status</th>
-                            <th>Last Activity</th>
+                            <th>Acc. Manager</th>
+                            <th>Recruiter</th>
                             <th>Email</th>
-                            <th>Phone</th>                              
-                            <th>Created time</th>                    
-                            <th>LinkedIn</th>
-                            <th>Experience</th>                           
-                            
+                            <th>Created</th>
+                            <th>Comp.</th> 
                         </tr>
                     </thead>
                     <tbody id="applicationsBody"></tbody>
@@ -127,7 +129,9 @@
                 <div class="detail-grid" id="detailGrid"></div>
             </div>
         </div>
-    </div> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="dashboard.js"></script> 
 </body>
 </html>

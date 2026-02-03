@@ -1,17 +1,16 @@
 // ==========================================
 // 1. CONFIGURACIÓN SUPABASE
 // ==========================================
-// ¡PEGA AQUÍ TUS CREDENCIALES REALES!
 const SUPABASE_URL = 'https://lmgpsbkbfeetdcgjxlbd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_cWlfcyK-hFgRqKyId7V32A_fp72fDNt';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ==========================================
 // 2. STATE VARIABLES & CONSTANTS
 // ==========================================
 let allRecords = [];
 let charts = {}; 
 
-// Mapas para la lógica de Trimestres
 const quartersMap = {
     "January": "Q1", "February": "Q1", "March": "Q1",
     "April": "Q2", "May": "Q2", "June": "Q2",
@@ -46,10 +45,8 @@ async function handleLogin() {
     const email = document.getElementById('authEmail').value;
     const password = document.getElementById('authPassword').value;
     const errorMsg = document.getElementById('loginError');
-    
     if (!email || !password) return;
     errorMsg.textContent = "Authenticating...";
-    
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) errorMsg.textContent = error.message;
 }
@@ -60,7 +57,7 @@ async function handleLogout() {
 }
 
 // ==========================================
-// 4. DATA FETCHING (CON LIMPIEZA Y EXCLUSIÓN)
+// 4. DATA FETCHING
 // ==========================================
 async function loadData() {
     const loadingMsg = document.getElementById('loadingMessage');
@@ -69,19 +66,13 @@ async function loadData() {
     try {
         let query = supabaseClient.from('revenue_records').select('*');
         const { data, error } = await query;
-
         if (error) throw error;
 
-        // FILTRO DE LIMPIEZA
         allRecords = (data || []).filter(item => {
-            // 1. Validar integridad básica
             const isValid = item.customer_name && item.billing_month && item.amount !== null;
-            
-            // 2. EXCLUSIÓN: "Device Purchase Cost"
             const category = String(item.revenue_category || '');
             const type = String(item.revenue_type || '');
             const isExcluded = category.includes('Device Purchase Cost') || type.includes('Device Purchase Cost');
-
             return isValid && !isExcluded;
         });
 
@@ -97,13 +88,13 @@ async function loadData() {
 }
 
 // ==========================================
-// 5. FILTERS (FUSIONADO AÑO + TRIMESTRE)
+// 5. FILTERS (MEJORADO: MES + AÑO)
 // ==========================================
 function populateFilters(data) {
-    const months = [...new Set(data.map(item => item.billing_month))].filter(Boolean);
+    // 1. Clientes
     const clients = [...new Set(data.map(item => item.customer_name))].sort().filter(Boolean);
 
-    // Lógica Periodo (2025 - Q4)
+    // 2. Periodos (Q1, Q2...)
     const periodsSet = new Set();
     data.forEach(item => {
         if(item.billing_year && item.billing_month) {
@@ -111,23 +102,32 @@ function populateFilters(data) {
             if(q) periodsSet.add(`${item.billing_year} - ${q}`);
         }
     });
-
-    // Ordenar Periodos (Más recientes primero)
     const periods = [...periodsSet].sort().reverse(); 
 
-    // Ordenar Meses lógicamente
-    months.sort((a, b) => monthOrder[a] - monthOrder[b]);
+    // 3. MEJORA: Meses con Año (ej: "January 2025")
+    const monthSet = new Set();
+    data.forEach(item => {
+        if(item.billing_month && item.billing_year) {
+            monthSet.add(`${item.billing_month} ${item.billing_year}`);
+        }
+    });
+    
+    // Ordenar cronológicamente (Año primero, luego mes)
+    const sortedMonths = [...monthSet].sort((a, b) => {
+        const [mA, yA] = a.split(' ');
+        const [mB, yB] = b.split(' ');
+        if (yA !== yB) return yA - yB;
+        return monthOrder[mA] - monthOrder[mB];
+    });
 
     fillSelect('periodFilter', periods, 'All Periods');
-    fillSelect('monthFilter', months, 'All Months');
+    fillSelect('monthFilter', sortedMonths, 'All Months'); // Ahora pasamos "Month Year"
     fillSelect('clientFilter', clients, 'All Clients');
 }
 
 function fillSelect(id, items, defaultText) {
     const select = document.getElementById(id);
-    // Evitar duplicados si ya se llenó
     if(select.options.length > 1) return;
-    
     items.forEach(item => {
         const opt = document.createElement('option');
         opt.value = item; 
@@ -137,12 +137,12 @@ function fillSelect(id, items, defaultText) {
 }
 
 function applyFilters() {
-    const periodVal = document.getElementById('periodFilter').value; // Ej: "2025 - Q4"
-    const monthVal = document.getElementById('monthFilter').value;
+    const periodVal = document.getElementById('periodFilter').value;
+    const monthYearVal = document.getElementById('monthFilter').value; // Valor "January 2025"
     const clientVal = document.getElementById('clientFilter').value;
 
     const filtered = allRecords.filter(item => {
-        // 1. Filtro Periodo
+        // Filtro 1: Periodo
         let matchPeriod = true;
         if (periodVal) {
             const [selYear, selQ] = periodVal.split(' - ');
@@ -150,10 +150,14 @@ function applyFilters() {
             matchPeriod = (String(item.billing_year) === selYear) && (itemQ === selQ);
         }
 
-        // 2. Filtro Mes
-        const matchMonth = !monthVal || item.billing_month === monthVal;
+        // Filtro 2: Mes + Año (Lógica Actualizada)
+        let matchMonth = true;
+        if (monthYearVal) {
+            const currentItemKey = `${item.billing_month} ${item.billing_year}`;
+            matchMonth = currentItemKey === monthYearVal;
+        }
         
-        // 3. Filtro Cliente
+        // Filtro 3: Cliente
         const matchClient = !clientVal || item.customer_name === clientVal;
 
         return matchPeriod && matchMonth && matchClient;
@@ -163,13 +167,12 @@ function applyFilters() {
 }
 
 // ==========================================
-// 6. DASHBOARD UPDATE (KPIs + TABLA + GRÁFICOS)
+// 6. DASHBOARD UPDATE
 // ==========================================
 function updateDashboard(data) {
-    // --- A. KPIs GENERALES ---
+    // A. KPIs (Igual que antes)
     const totalRev = data.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
     const uniqueClients = new Set(data.map(i => i.customer_name)).size;
-    
     const clientCounts = {};
     data.forEach(i => { clientCounts[i.customer_name] = (clientCounts[i.customer_name] || 0) + parseFloat(i.amount) });
     const topClientName = Object.keys(clientCounts).sort((a,b) => clientCounts[b] - clientCounts[a])[0] || '-';
@@ -179,7 +182,7 @@ function updateDashboard(data) {
     document.getElementById('activeClients').textContent = uniqueClients;
     document.getElementById('topClient').textContent = topClientName;
 
-    // --- B. KPIs POR LÍNEA DE NEGOCIO ---
+    // B. KPIs por Línea
     const guardTotal = data.filter(i => (i.revenue_category || '').includes('Guard')).reduce((sum, i) => sum + (parseFloat(i.amount)||0), 0);
     const recTotal = data.filter(i => (i.revenue_category || '').includes('Recruiting')).reduce((sum, i) => sum + (parseFloat(i.amount)||0), 0);
     const staffTotal = data.filter(i => (i.revenue_category || '').includes('Staff') || (i.revenue_category || '').includes('ProServ')).reduce((sum, i) => sum + (parseFloat(i.amount)||0), 0);
@@ -188,11 +191,9 @@ function updateDashboard(data) {
     document.getElementById('recRevenue').textContent = formatCurrency(recTotal);
     document.getElementById('staffRevenue').textContent = formatCurrency(staffTotal);
 
-    // --- C. TABLA (ORDENADA DESCENDENTE) ---
+    // C. TABLA
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
-
-    // Ordenar: Año (Desc) -> Mes (Desc)
     data.sort((a, b) => {
         if (b.billing_year !== a.billing_year) return b.billing_year - a.billing_year;
         return monthOrder[b.billing_month] - monthOrder[a.billing_month];
@@ -213,50 +214,88 @@ function updateDashboard(data) {
         });
     }
 
-    // --- D. RENDERIZAR GRÁFICOS ---
     renderCharts(data);
 }
 
+// ==========================================
+// 7. RENDER CHARTS (MEJORADO: STACKED BARS)
+// ==========================================
 function renderCharts(data) {
-    // 1. Preparar Datos
-    const monthlyData = {};
-    const categoryCounts = {};
+    // 1. Preparar Datos para Gráfico Apilado (Mes x Categoría)
+    const monthlyStacked = {}; // { "January 2025": { Guard: 100, Recruiting: 50... } }
+    const categoryCounts = {}; // Para el Doughnut
 
     data.forEach(item => {
-        // Trend
         const key = `${item.billing_month} ${item.billing_year}`;
-        monthlyData[key] = (monthlyData[key] || 0) + parseFloat(item.amount);
+        const amount = parseFloat(item.amount) || 0;
+        
+        // Identificar Categoría Simplificada
+        let cat = 'Other';
+        const rawCat = (item.revenue_category || '').toLowerCase();
+        if(rawCat.includes('guard')) cat = 'Guard';
+        else if(rawCat.includes('recruiting')) cat = 'Recruiting';
+        else if(rawCat.includes('staff') || rawCat.includes('proserv')) cat = 'Staffing';
 
-        // Mix
-        const cat = item.revenue_category || 'Uncategorized';
-        categoryCounts[cat] = (categoryCounts[cat] || 0) + parseFloat(item.amount);
+        // Llenar datos apilados
+        if (!monthlyStacked[key]) monthlyStacked[key] = { Guard: 0, Recruiting: 0, Staffing: 0, Other: 0 };
+        monthlyStacked[key][cat] += amount;
+
+        // Llenar datos de dona global
+        const displayCat = item.revenue_category || 'Uncategorized';
+        categoryCounts[displayCat] = (categoryCounts[displayCat] || 0) + amount;
     });
 
-    // Ordenar Cronológicamente para el gráfico
-    const sortedKeys = Object.keys(monthlyData).sort((a, b) => {
+    // Ordenar Meses Cronológicamente
+    const sortedKeys = Object.keys(monthlyStacked).sort((a, b) => {
         const [mA, yA] = a.split(' '); const [mB, yB] = b.split(' ');
         if (yA !== yB) return yA - yB;
         return monthOrder[mA] - monthOrder[mB];
     });
-    const monthlyValues = sortedKeys.map(k => monthlyData[k]);
 
-    // Limpiar gráficos previos
+    // Arrays para Chart.js
+    const guardData = sortedKeys.map(k => monthlyStacked[k].Guard);
+    const recData = sortedKeys.map(k => monthlyStacked[k].Recruiting);
+    const staffData = sortedKeys.map(k => monthlyStacked[k].Staffing);
+    const otherData = sortedKeys.map(k => monthlyStacked[k].Other);
+    
+    // Calcular totales por mes para la regresión
+    const monthlyTotals = sortedKeys.map(k => 
+        monthlyStacked[k].Guard + monthlyStacked[k].Recruiting + monthlyStacked[k].Staffing + monthlyStacked[k].Other
+    );
+
+    // Limpiar gráficos
     ['trend', 'category', 'forecast'].forEach(k => { if(charts[k]) charts[k].destroy(); });
 
-    // --- CHART 1: MONTHLY TREND (BAR) ---
+    // --- CHART 1: MONTHLY PERFORMANCE (STACKED BAR) ---
+    // Muestra: Guard vs Recruiting vs Staffing por mes
     const ctxTrend = document.getElementById('trendChart').getContext('2d');
     charts.trend = new Chart(ctxTrend, {
-        type: 'bar', 
+        type: 'bar',
         data: {
             labels: sortedKeys,
-            datasets: [{
-                label: 'Monthly Revenue',
-                data: monthlyValues,
-                backgroundColor: '#3498db',
-                borderRadius: 4
-            }]
+            datasets: [
+                { label: 'Guard', data: guardData, backgroundColor: '#f1c40f' },
+                { label: 'Recruiting', data: recData, backgroundColor: '#3498db' },
+                { label: 'Staffing', data: staffData, backgroundColor: '#9b59b6' },
+                { label: 'Other', data: otherData, backgroundColor: '#95a5a6' }
+            ]
         },
-        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        options: {
+            responsive: true,
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + formatCurrency(context.raw);
+                        }
+                    }
+                }
+            }
+        }
     });
 
     // --- CHART 2: REVENUE MIX (DOUGHNUT) ---
@@ -270,12 +309,13 @@ function renderCharts(data) {
                 backgroundColor: ['#f1c40f', '#2ecc71', '#9b59b6', '#e74c3c', '#34495e']
             }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 10} } } } }
     });
 
     // --- CHART 3: FORECAST (LINEAR REGRESSION) ---
+    // Mantenemos la lógica pero usando los totales mensuales calculados
     if (sortedKeys.length > 1) {
-        const forecastData = calculateLinearRegression(monthlyValues);
+        const forecastData = calculateLinearRegression(monthlyTotals);
         const nextLabel = "Projected Next"; 
         const ctxForecast = document.getElementById('forecastChart').getContext('2d');
         charts.forecast = new Chart(ctxForecast, {
@@ -284,11 +324,11 @@ function renderCharts(data) {
                 labels: [...sortedKeys, nextLabel],
                 datasets: [
                     {
-                        label: 'Historical Data',
-                        data: [...monthlyValues, null],
-                        borderColor: '#3498db',
-                        backgroundColor: '#3498db',
-                        tension: 0.2
+                        label: 'Total Revenue History',
+                        data: [...monthlyTotals, null],
+                        borderColor: '#2c3e50',
+                        backgroundColor: '#2c3e50',
+                        tension: 0.3
                     },
                     {
                         label: 'Trend Forecast',
@@ -307,8 +347,6 @@ function renderCharts(data) {
 }
 
 // --- UTILITIES ---
-
-// Regresión Lineal Simple
 function calculateLinearRegression(yValues) {
     const xValues = yValues.map((_, i) => i);
     const n = yValues.length;
@@ -316,16 +354,10 @@ function calculateLinearRegression(yValues) {
     const sumY = yValues.reduce((a, b) => a + b, 0);
     const sumXY = xValues.reduce((sum, x, i) => sum + x * yValues[i], 0);
     const sumXX = xValues.reduce((sum, x) => sum + x * x, 0);
-    
-    // y = mx + b
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
-    
     const result = [];
-    // Generamos puntos hasta n (el futuro próximo)
-    for (let i = 0; i <= n; i++) {
-        result.push(slope * i + intercept);
-    }
+    for (let i = 0; i <= n; i++) result.push(slope * i + intercept);
     return result;
 }
 
@@ -334,15 +366,13 @@ function formatCurrency(val) {
 }
 
 // ==========================================
-// 7. INITIALIZATION
+// 8. INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Listeners de filtros
     document.getElementById('periodFilter').addEventListener('change', applyFilters);
     document.getElementById('monthFilter').addEventListener('change', applyFilters);
     document.getElementById('clientFilter').addEventListener('change', applyFilters);
 
-    // Auth Listener
     if (supabaseClient) {
         supabaseClient.auth.onAuthStateChange((event, session) => {
             checkSession();

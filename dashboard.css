@@ -380,5 +380,24 @@
         .perf-card h3 { font-size: 2rem; margin: 0; }
         .perf-card p { font-size: 0.8rem; color: #666; }
 
+        /* Contenedor tipo tarjeta para que coincida con el resto de tu diseño */
+        .zoho-card {
+            background: white;
+            border-radius: 15px;       /* Bordes redondeados */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* Sombra suave */
+            overflow: hidden;          /* Para que el iframe respete los bordes redondeados */
+            width: 100%;
+            height: 850px;             /* ALTURA IMPORTANTE: Aumenta esto si tienes muchos gráficos */
+            position: relative;
+        }
+
+        /* Estilo del Iframe */
+        .zoho-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;              /* Quita el borde feo por defecto */
+            display: block;            /* Elimina espacios extra en la parte inferior */
+        }
+
         
    
