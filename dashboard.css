@@ -398,6 +398,76 @@
             border: none;              /* Quita el borde feo por defecto */
             display: block;            /* Elimina espacios extra en la parte inferior */
         }
+        
+        /* --- ESTILOS PARA LA TABLA FINANCIAL (PURPLE THEME) --- */
 
+        .financial-card {
+            background-color: white;
+            margin-top: 20px;
+            /* La barra morada gruesa en la parte inferior */
+            border-bottom: 8px solid #5e35b1; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .financial-title {
+            background-color: #1b5e20; /* Verde oscuro igual que la imagen */
+            color: white;
+            padding: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .custom-table thead tr {
+            background-color: #1b5e20; /* Verde oscuro cabecera */
+            color: white;
+        }
+
+        .custom-table th {
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 0.75em;
+            text-transform: uppercase; /* TEXTO EN MAYÚSCULAS */
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .custom-table td {
+            padding: 12px 10px;
+            font-size: 0.9em;
+            color: #333;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        /* FILAS ALTERNADAS: La magia para que se vea como la imagen */
+        /* Las filas pares tendrán el fondo morado claro */
+        .custom-table tbody tr:nth-child(even) {
+            background-color: #ede7f6; /* Morado muy claro */
+        }
+        /* Las filas impares serán blancas */
+        .custom-table tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+
+        /* Estilos específicos para columnas */
+        .highlight-blue {
+            color: #1976d2; /* Azul fuerte */
+            font-weight: bold;
+        }
+
+        .highlight-red {
+            color: #d32f2f; /* Rojo */
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
         
    

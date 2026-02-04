@@ -33,7 +33,7 @@
 
         <div class="container">
             <div class="header">
-                <h1>commissions & Recruitment performance</h1>
+                <h1>Commissions & Recruitment performance</h1>
                 <p>Tracking Recruiter Assignments and Target Dates</p>
             </div>           
 
@@ -52,7 +52,7 @@
                 </div>-->
                 <div class="stat-card" style="background: #e8f5e9;">
                     <h3 id="totalRevenue" style="color: #2e7d32;">$0</h3>
-                    <p>Total Salary</p>
+                    <p>Total Revenue</p>
                 </div>                
                 <div class="stat-card">
                     <h3 id="uniqueClients">0</h3>
@@ -64,15 +64,15 @@
                 </div>            
                 <div class="stat-card revenue-staff">
                     <h3 id="revenueStaff">$0</h3>
-                    <p>Staff Aug Salary</p>
+                    <p>Staff Aug</p>
                 </div>
                 <div class="stat-card revenue-rec">
                     <h3 id="revenueRec">$0</h3>
-                    <p>Rec Salary</p>
+                    <p>Rec</p>
                 </div>
                 <div class="stat-card revenue-guard">
                     <h3 id="revenueGuard">$0</h3>
-                    <p>Guard Salary</p>
+                    <p>Guard</p>
                 </div>                
             </div>            
 
@@ -135,6 +135,33 @@
                 </div>
             </div>
 
+            <div class="financial-card">
+                <div class="financial-title">
+                    Financial Analysis (Summary by Recruiter)
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Recruiter</th>
+                                <th>Monthly Comp</th>
+                                <th class="text-center">Recruiting %</th>
+                                <th>Cost Per Day</th>
+                                <th class="text-center">Months Between</th>
+                                <th>Cost Wall</th>
+                                <th>Date of Entry</th>
+                                <th>End of Q4</th>
+                                <th class="text-right">Total Commission</th>
+                            </tr>
+                        </thead>
+                        <tbody id="financialBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            
+
             <div class="table-container" id="tableContainer" style="display: none; margin-top: 30px;">
                 <table>
                     <thead>
@@ -147,7 +174,7 @@
                             <th>Assigned Recruiter</th>
                             <th>Start Date</th>
                             <th>% Fee</th>
-                            <th>Salary</th>
+                            <th>Revenue</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
