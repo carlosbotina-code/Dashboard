@@ -88,7 +88,7 @@ async function loadData() {
 }
 
 // ==========================================
-// 5. FILTERS (MEJORADO: MES + AÑO)
+// 5. FILTERS
 // ==========================================
 function populateFilters(data) {
     // 1. Clientes
@@ -104,7 +104,7 @@ function populateFilters(data) {
     });
     const periods = [...periodsSet].sort().reverse(); 
 
-    // 3. MEJORA: Meses con Año (ej: "January 2025")
+    // 3. Meses con Año
     const monthSet = new Set();
     data.forEach(item => {
         if(item.billing_month && item.billing_year) {
@@ -112,7 +112,7 @@ function populateFilters(data) {
         }
     });
     
-    // Ordenar cronológicamente (Año primero, luego mes)
+    // Ordenar cronológicamente
     const sortedMonths = [...monthSet].sort((a, b) => {
         const [mA, yA] = a.split(' ');
         const [mB, yB] = b.split(' ');
@@ -121,7 +121,7 @@ function populateFilters(data) {
     });
 
     fillSelect('periodFilter', periods, 'All Periods');
-    fillSelect('monthFilter', sortedMonths, 'All Months'); // Ahora pasamos "Month Year"
+    fillSelect('monthFilter', sortedMonths, 'All Months'); 
     fillSelect('clientFilter', clients, 'All Clients');
 }
 
@@ -138,7 +138,7 @@ function fillSelect(id, items, defaultText) {
 
 function applyFilters() {
     const periodVal = document.getElementById('periodFilter').value;
-    const monthYearVal = document.getElementById('monthFilter').value; // Valor "January 2025"
+    const monthYearVal = document.getElementById('monthFilter').value;
     const clientVal = document.getElementById('clientFilter').value;
 
     const filtered = allRecords.filter(item => {
@@ -150,7 +150,7 @@ function applyFilters() {
             matchPeriod = (String(item.billing_year) === selYear) && (itemQ === selQ);
         }
 
-        // Filtro 2: Mes + Año (Lógica Actualizada)
+        // Filtro 2: Mes + Año
         let matchMonth = true;
         if (monthYearVal) {
             const currentItemKey = `${item.billing_month} ${item.billing_year}`;
@@ -170,7 +170,7 @@ function applyFilters() {
 // 6. DASHBOARD UPDATE
 // ==========================================
 function updateDashboard(data) {
-    // A. KPIs (Igual que antes)
+    // A. KPIs
     const totalRev = data.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
     const uniqueClients = new Set(data.map(i => i.customer_name)).size;
     const clientCounts = {};
@@ -218,26 +218,31 @@ function updateDashboard(data) {
 }
 
 // ==========================================
-// 7. RENDER CHARTS (MEJORADO: STACKED BARS)
+// 7. RENDER CHARTS
 // ==========================================
 function renderCharts(data) {
-    // 1. Preparar Datos para Gráfico Apilado (Mes x Categoría)
-    const monthlyStacked = {}; // { "January 2025": { Guard: 100, Recruiting: 50... } }
-    const categoryCounts = {}; // Para el Doughnut
+    // --- 1. Preparación de Datos ---
+    const monthlyStacked = {}; 
+    const categoryCounts = {}; 
 
     data.forEach(item => {
         const key = `${item.billing_month} ${item.billing_year}`;
         const amount = parseFloat(item.amount) || 0;
         
-        // Identificar Categoría Simplificada
+        // --- LOGICA DE CATEGORIAS ---
         let cat = 'Other';
         const rawCat = (item.revenue_category || '').toLowerCase();
-        if(rawCat.includes('guard')) cat = 'Guard';
+        
+        // Verificamos "misc guard" antes que "guard" general
+        if (rawCat.includes('misc guard')) cat = 'MiscGuard'; 
+        else if(rawCat.includes('guard')) cat = 'Guard';
         else if(rawCat.includes('recruiting')) cat = 'Recruiting';
         else if(rawCat.includes('staff') || rawCat.includes('proserv')) cat = 'Staffing';
 
         // Llenar datos apilados
-        if (!monthlyStacked[key]) monthlyStacked[key] = { Guard: 0, Recruiting: 0, Staffing: 0, Other: 0 };
+        if (!monthlyStacked[key]) {
+            monthlyStacked[key] = { Guard: 0, MiscGuard: 0, Recruiting: 0, Staffing: 0, Other: 0 };
+        }
         monthlyStacked[key][cat] += amount;
 
         // Llenar datos de dona global
@@ -245,39 +250,40 @@ function renderCharts(data) {
         categoryCounts[displayCat] = (categoryCounts[displayCat] || 0) + amount;
     });
 
-    // Ordenar Meses Cronológicamente
+    // Ordenar Meses
     const sortedKeys = Object.keys(monthlyStacked).sort((a, b) => {
         const [mA, yA] = a.split(' '); const [mB, yB] = b.split(' ');
         if (yA !== yB) return yA - yB;
         return monthOrder[mA] - monthOrder[mB];
     });
 
-    // Arrays para Chart.js
+    // --- ARRAYS PARA CHART.JS ---
     const guardData = sortedKeys.map(k => monthlyStacked[k].Guard);
+    const miscGuardData = sortedKeys.map(k => monthlyStacked[k].MiscGuard);
     const recData = sortedKeys.map(k => monthlyStacked[k].Recruiting);
     const staffData = sortedKeys.map(k => monthlyStacked[k].Staffing);
     const otherData = sortedKeys.map(k => monthlyStacked[k].Other);
     
-    // Calcular totales por mes para la regresión
+    // Totales por mes
     const monthlyTotals = sortedKeys.map(k => 
-        monthlyStacked[k].Guard + monthlyStacked[k].Recruiting + monthlyStacked[k].Staffing + monthlyStacked[k].Other
+        monthlyStacked[k].Guard + monthlyStacked[k].MiscGuard + monthlyStacked[k].Recruiting + monthlyStacked[k].Staffing + monthlyStacked[k].Other
     );
 
-    // Limpiar gráficos
+    // Limpiar gráficos anteriores
     ['trend', 'category', 'forecast'].forEach(k => { if(charts[k]) charts[k].destroy(); });
 
     // --- CHART 1: MONTHLY PERFORMANCE (STACKED BAR) ---
-    // Muestra: Guard vs Recruiting vs Staffing por mes
     const ctxTrend = document.getElementById('trendChart').getContext('2d');
     charts.trend = new Chart(ctxTrend, {
         type: 'bar',
         data: {
             labels: sortedKeys,
             datasets: [
-                { label: 'Guard', data: guardData, backgroundColor: '#f1c40f' },
-                { label: 'Recruiting', data: recData, backgroundColor: '#3498db' },
-                { label: 'Staffing', data: staffData, backgroundColor: '#9b59b6' },
-                { label: 'Other', data: otherData, backgroundColor: '#95a5a6' }
+                { label: 'Guard', data: guardData, backgroundColor: '#2ecc71' }, // Verde
+                { label: 'Misc Guard Services', data: miscGuardData, backgroundColor: '#9b59b6' }, // Azul
+                { label: 'Recruiting ', data: recData, backgroundColor: '#f1c40f' }, // Amarillo
+                { label: 'Staff Aug/ProServ', data: staffData, backgroundColor: '#e74c3c' }, // Rojo
+                { label: 'Other', data: otherData, backgroundColor: '#95a5a6' } // Gris
             ]
         },
         options: {
@@ -287,15 +293,38 @@ function renderCharts(data) {
                 y: { stacked: true, beginAtZero: true }
             },
             plugins: {
+                // Etiquetas fijas (Porcentajes)
+                datalabels: {
+                    color: '#fff', 
+                    font: { weight: 'bold', size: 10 },
+                    formatter: function(value, context) {
+                        if (value === 0) return null;
+                        
+                        let total = 0;
+                        context.chart.data.datasets.forEach(dataset => {
+                            total += dataset.data[context.dataIndex];
+                        });
+
+                        if (total === 0) return null;
+                        
+                        if ((value / total) < 0.04) return null; // Filtro visual
+
+                        return ((value / total) * 100).toFixed(1) + '%';
+                    }
+                },
+                // Tooltip
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return context.dataset.label + ': ' + formatCurrency(context.raw);
+                            let label = context.dataset.label || '';
+                            let value = context.raw || 0;
+                            return label + ': ' + formatCurrency(value);
                         }
                     }
                 }
             }
-        }
+        },
+        plugins: [ChartDataLabels] 
     });
 
     // --- CHART 2: REVENUE MIX (DOUGHNUT) ---
@@ -306,14 +335,28 @@ function renderCharts(data) {
             labels: Object.keys(categoryCounts),
             datasets: [{
                 data: Object.values(categoryCounts),
-                backgroundColor: ['#f1c40f', '#2ecc71', '#9b59b6', '#e74c3c', '#34495e']
+                backgroundColor: ['#f1c40f', '#2ecc71', '#9b59b6', '#e74c3c', '#34495e', '#3498db']
             }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 10} } } } }
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 10} } },
+                datalabels: {
+                    color: '#fff',
+                    font: { weight: 'bold', size: 12 },
+                    formatter: (value, ctx) => {
+                        let total = ctx.dataset.data.reduce((acc, curr) => acc + curr, 0);
+                        if ((value/total) < 0.03) return null;
+                        return ((value / total) * 100).toFixed(1) + '%';
+                    }
+                }
+            }
+        },
+        plugins: [ChartDataLabels] 
     });
 
     // --- CHART 3: FORECAST (LINEAR REGRESSION) ---
-    // Mantenemos la lógica pero usando los totales mensuales calculados
     if (sortedKeys.length > 1) {
         const forecastData = calculateLinearRegression(monthlyTotals);
         const nextLabel = "Projected Next"; 
@@ -346,7 +389,9 @@ function renderCharts(data) {
     }
 }
 
-// --- UTILITIES ---
+// ==========================================
+// 8. UTILITIES & INITIALIZATION
+// ==========================================
 function calculateLinearRegression(yValues) {
     const xValues = yValues.map((_, i) => i);
     const n = yValues.length;
@@ -365,9 +410,6 @@ function formatCurrency(val) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(val);
 }
 
-// ==========================================
-// 8. INITIALIZATION
-// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('periodFilter').addEventListener('change', applyFilters);
     document.getElementById('monthFilter').addEventListener('change', applyFilters);

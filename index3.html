@@ -80,10 +80,10 @@
 
             <div class="controls">
                 <select id="periodFilter">
-                    <option value="">All Periods</option>
+                    <option value="">Select Quarter</option>
                 </select>
 
-                <select id="monthFilter"><option value="">All Months</option></select>
+                <select id="monthFilter"><option value="">Sep - Now</option></select>
                 <select id="clientFilter"><option value="">All Clients</option></select>
                 
                 <button onclick="loadData()" style="background:#3498db; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">🔄 Refresh</button>
@@ -166,7 +166,7 @@
             </div>
         </div>
     </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="index3.js"></script>
 </body>
 </html>
