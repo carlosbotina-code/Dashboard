@@ -204,6 +204,9 @@ function renderTable(data) {
 // ==========================================
 // 7. FINANCIAL ANALYSIS (FILTRADO SOLO 2025)
 // ==========================================
+// ==========================================
+// 7. FINANCIAL ANALYSIS (INCLUYENDO A DAVID)
+// ==========================================
 function renderFinancialTable(data) {
     const tbody = document.getElementById('financialBody');
     if (!tbody) return;
@@ -219,7 +222,9 @@ function renderFinancialTable(data) {
         if (itemDate < start2025 || itemDate > end2025) return;
 
         const recruiter = item.Assigned_Recruiter || 'Unassigned';
-        if (recruiter.includes("David") || recruiter.includes("Luis")) return;
+        
+        
+        if (recruiter.includes("Luis")) return; 
 
         let cleanComp = parseFloat(String(item.compensation).replace(/[^0-9.-]+/g, "")) || 0;
         let revenue = 0;
@@ -235,7 +240,12 @@ function renderFinancialTable(data) {
     Object.values(summary).forEach(rec => {
         let fixedComp = 0, recruitingPct = 0.08, entryDate, exitDate;
 
-        if (rec.name.includes("Teresa")) {
+        // --- CONFIGURACIÓN DE PARÁMETROS POR RECLUTADOR ---
+        if (rec.name.includes("David")) {
+            fixedComp = 3000; // Según la imagen que subiste
+            entryDate = new Date(2025, 10, 27); // 1 de Enero 2025
+            exitDate = new Date(2025, 12, 31); // 31 de Diciembre 2025
+        } else if (rec.name.includes("Teresa")) {
             fixedComp = 1200;
             entryDate = new Date(2025, 8, 15); exitDate = new Date(2025, 11, 31);
         } else if (rec.name.includes("Paulo")) {
@@ -245,8 +255,13 @@ function renderFinancialTable(data) {
             fixedComp = 0; entryDate = new Date(2025, 0, 1); exitDate = new Date(2025, 11, 31);
         }
 
+        // Cálculo de meses activos para el costo base
         const monthsBetween = Math.round((Math.ceil(Math.abs(exitDate - entryDate) / (86400000)) / 30) * 2) / 2;
+        
+        // Costo base = (Sueldo Fijo + Costo Operativo Estimado de 2000) * meses
         const costWall = (fixedComp * monthsBetween) + (2000 * monthsBetween);
+        
+        // Profit final para el reclutador (Comisión)
         const finalProfit = (rec.totalCommission - costWall) * recruitingPct;
 
         const fmt = (v) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
