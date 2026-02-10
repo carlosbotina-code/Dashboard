@@ -1,123 +1,161 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Feedback</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
-        .card { background: white; padding: 30px; border-radius: 12px; max-width: 800px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        textarea { width: 100%; height: 120px; margin: 15px 0; padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
-        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
-        .feedback-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; }
+        .card { background: white; padding: 30px; border-radius: 12px; max-width: 1000px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* Split Layout */
+        .split-view { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        
+        /* Form Styles */
+        textarea { width: 100%; height: 120px; margin: 15px 0; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; resize: vertical; }
+        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; }
+        button:hover { background: #2980b9; }
+
+        /* List Styles */
+        .list-container { max-height: 500px; overflow-y: auto; padding-right: 5px; }
+        .feedback-item { display: flex; align-items: flex-start; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; background: #fafafa; border-radius: 6px; margin-bottom: 10px; }
         .resolved { text-decoration: line-through; color: #95a5a6; }
-        .tag-admin { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .hidden { display: none; }
+        .meta-info { display: block; font-size: 0.8em; color: #7f8c8d; margin-top: 5px; }
+        
+        @media (max-width: 768px) {
+            .split-view { grid-template-columns: 1fr; gap: 20px; }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
     <div class="card">
-    <a href="index.html" style="text-decoration: none; color: #3498db;">← Back to Menu</a>
-    
-        <div id="userView" class="hidden">
-            <h2>💡 Share your feedback</h2>
-            <p>What would you like to improve or what issues have you encountered?</p>
-            <textarea id="feedbackText" placeholder="Write your comments here..."></textarea>
-            <button onclick="sendFeedback()">Submit Feedback</button>
-            <p id="msg" style="color: green;"></p>
-        </div>
+        <a href="index.html" style="text-decoration: none; color: #3498db; display: inline-block; margin-bottom: 20px;">← Back to Dashboard</a>
+        
+        <div class="split-view">
+            <div id="formSection">
+                <h2 style="margin-top: 0;">💡 Send Feedback</h2>
+                <p style="color: #666;">What would you like to improve or what issues have you encountered?</p>
+                
+                <textarea id="feedbackText" placeholder="Write your comments here..."></textarea>
+                <button onclick="sendFeedback()">Submit Comment</button>
+                <p id="msg" style="color: green; margin-top: 10px; min-height: 20px;"></p>
+            </div>
 
-        <div id="adminView" class="hidden">
-            <h2>📋 Received Suggestions <span class="tag-admin">Admin</span></h2>
-            <div id="feedbackList">
-                <p>Loading comments...</p>
+            <div id="listSection">
+                <h2 style="margin-top: 0;">📋 Recent Comments</h2>
+                <div id="feedbackList" class="list-container">
+                    <p>Loading comments...</p>
+                </div>
             </div>
         </div>
     </div>
 
-
     <script>
-        // 1. CONFIGURACIÓN
-            const SUPABASE_URL = 'https://lmgpsbkbfeetdcgjxlbd.supabase.co';
-            const SUPABASE_KEY = 'sb_publishable_cWlfcyK-hFgRqKyId7V32A_fp72fDNt';
+        // 1. CONFIGURATION
+        const SUPABASE_URL = 'https://lmgpsbkbfeetdcgjxlbd.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_cWlfcyK-hFgRqKyId7V32A_fp72fDNt';
 
-            // CAMBIO AQUÍ: Renombramos a 'supabaseClient' para evitar el choque con la librería
-            const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            const ADMIN_EMAIL = 'carlos.botina@innovuslabs.com'; 
+        async function init() {
+            // Check session
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (!session) { 
+                // If no session, redirect logic here if needed
+                console.log("User not logged in (Simulation Mode)");
+            }
 
-            async function init() {
-                // CAMBIO AQUÍ: Usamos supabaseClient
-                const { data: { session } } = await supabaseClient.auth.getSession();
+            // NO ADMIN DISTINCTION
+            // Load the list for anyone who visits the page
+            loadFeedback();
+        }
+
+        // Send Function
+        async function sendFeedback() {
+            const textInput = document.getElementById('feedbackText');
+            const msgLabel = document.getElementById('msg');
+            const text = textInput.value;
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const userEmail = session ? session.user.email : 'anonymous@user.com'; // Fallback
+
+            if (!text.trim()) return alert("Please write something before submitting.");
+
+            msgLabel.textContent = "Sending...";
+
+            const { error } = await supabaseClient.from('feedback').insert([
+                { user_email: userEmail, message: text }
+            ]);
+
+            if (error) {
+                alert("Error: " + error.message);
+                msgLabel.textContent = "";
+            } else {
+                textInput.value = "";
+                msgLabel.textContent = "Thank you! Your feedback has been sent.";
                 
-                if (!session) { 
-                    window.location.href = 'portal.html'; 
-                    return; 
-                }
+                // RELOAD LIST IMMEDIATELY
+                loadFeedback();
+                
+                // Clear success message after 3 seconds
+                setTimeout(() => { msgLabel.textContent = ""; }, 3000);
+            }
+        }
 
-                if (session.user.email === ADMIN_EMAIL) {
-                    document.getElementById('adminView').classList.remove('hidden');
-                    loadFeedback();
-                } else {
-                    document.getElementById('userView').classList.remove('hidden');
-                }
+        // Load List Function (Universal)
+        async function loadFeedback() {
+            const { data, error } = await supabaseClient
+                .from('feedback')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                document.getElementById('feedbackList').innerHTML = '<p style="color:red">Error loading list. Check RLS permissions.</p>';
+                return;
             }
 
-            // Función para el Usuario
-            async function sendFeedback() {
-                const text = document.getElementById('feedbackText').value;
-                const { data: { session } } = await supabaseClient.auth.getSession();
+            const listCont = document.getElementById('feedbackList');
+            listCont.innerHTML = data.length ? '' : '<p style="color: #999;">No comments yet.</p>';
 
-                if (!text) return alert("Please write something before submitting");
-
-                // CAMBIO AQUÍ: Usamos supabaseClient
-                const { error } = await supabaseClient.from('feedback').insert([
-                    { user_email: session.user.email, message: text }
-                ]);
-
-                if (error) alert("Error: " + error.message);
-                else {
-                    document.getElementById('feedbackText').value = "";
-                    document.getElementById('msg').textContent = "Thank you! Your feedback has been sent."
-                }
-            }
-
-            // Función para el Admin
-            async function loadFeedback() {
-                // CAMBIO AQUÍ: Usamos supabaseClient
-                const { data, error } = await supabaseClient
-                    .from('feedback')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) return console.error(error);
-
-                const listCont = document.getElementById('feedbackList');
-                listCont.innerHTML = data.length ? '' : 'No comments yet.';
-
-                data.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'feedback-item';
-                    div.innerHTML = `
-                        <div>
-                            <strong class="${item.is_resolved ? 'resolved' : ''}">${item.message}</strong><br>
-                            <small>De: ${item.user_email} - ${new Date(item.created_at).toLocaleDateString()}</small>
-                        </div>
+            data.forEach(item => {
+                const date = new Date(item.created_at).toLocaleDateString();
+                const div = document.createElement('div');
+                div.className = 'feedback-item';
+                
+                // Accessible checkbox for everyone as requested
+                div.innerHTML = `
+                    <div style="flex-grow: 1;">
+                        <strong class="${item.is_resolved ? 'resolved' : ''}" style="font-size: 1.05em;">${item.message}</strong>
+                        <span class="meta-info">From: ${item.user_email} • ${date}</span>
+                    </div>
+                    <div style="margin-left: 15px; text-align: center;">
                         <input type="checkbox" ${item.is_resolved ? 'checked' : ''} 
-                            onclick="toggleResolved('${item.id}', ${item.is_resolved})">
-                    `;
-                    listCont.appendChild(div);
-                });
-            }
+                            onclick="toggleResolved('${item.id}', ${item.is_resolved})" 
+                            style="transform: scale(1.2); cursor: pointer;" title="Mark as resolved">
+                    </div>
+                `;
+                listCont.appendChild(div);
+            });
+        }
 
-            async function toggleResolved(id, currentState) {
-                // CAMBIO AQUÍ: Usamos supabaseClient
-                await supabaseClient.from('feedback').update({ is_resolved: !currentState }).eq('id', id);
+        // Toggle Function (Universal)
+        async function toggleResolved(id, currentState) {
+            // Note: This will fail if Supabase RLS policies only allow UPDATE to admins.
+            const { error } = await supabaseClient.from('feedback').update({ is_resolved: !currentState }).eq('id', id);
+            
+            if (error) {
+                alert("You do not have permission to edit this status.");
+                console.error(error);
+            } else {
                 loadFeedback(); 
             }
+        }
 
-            init();
+        init();
     </script>
 </body>
 </html>

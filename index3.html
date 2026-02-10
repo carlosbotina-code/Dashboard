@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial & Revenue Dashboard</title>
+    <title>Financial & Revenue Dashboard - Comparative Mode</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
         
@@ -45,6 +45,8 @@
         .controls { display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap; align-items: center; }
         select { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; min-width: 180px; }
         .refresh-btn { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .compare-btn { background: #8e44ad; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 5px;}
+        .compare-btn:hover { background: #732d91; }
 
         /* TABLE */
         .table-wrapper { overflow-x: auto; max-height: 450px; border: 1px solid #edf2f7; border-radius: 8px; }
@@ -52,28 +54,43 @@
         th { background: #f8fafc; padding: 15px; font-size: 0.9em; color: #4a5568; position: sticky; top: 0; }
         td { padding: 15px; border-top: 1px solid #edf2f7; font-size: 0.95em; }
         
-        /* BOTONES DEL HEADER */
+        /* HEADER BUTTONS */
         .logout-btn { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600; }
-        
-        /* NUEVO ESTILO PARA EL BOTÓN HOME */
-        .home-btn { 
-            background: #34495e; 
-            color: white; 
-            border: none; 
-            padding: 8px 15px; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            margin-right: 10px; /* Separación del botón Logout */
-            font-weight: 600;
-            transition: background 0.2s;
-        }
+        .home-btn { background: #34495e; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px; font-weight: 600; transition: background 0.2s; }
         .home-btn:hover { background: #2c3e50; }
+
+        /* --- ESTILOS DEL MODAL DE COMPARACIÓN --- */
+        .modal-overlay {
+            display: none; /* Oculto por defecto */
+            position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe; padding: 30px; border-radius: 12px;
+            width: 90%; max-width: 900px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .close-modal { background: none; border: none; font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; }
+        .close-modal:hover { color: #000; }
+        
+        .compare-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .compare-label { display: block; font-size: 0.85em; color: #666; margin-bottom: 5px; font-weight: 600;}
+        
+        /* Colores para variaciones */
+        .text-green { color: #2ecc71; font-weight: bold; }
+        .text-red { color: #e74c3c; font-weight: bold; }
 
         @media (max-width: 1000px) { .charts-row { grid-template-columns: 1fr; } }
     </style>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 </head>
 <body>
 
@@ -98,19 +115,18 @@
                 </div>
                 <div>
                     <button class="home-btn" onclick="window.location.href='index.html'">🏠 Home</button>
-                    <button class="home-btn" onclick="window.location.href='index4.html'">2026</button>
                     <button class="logout-btn" onclick="handleLogout()">Logout</button>
                 </div>
             </div>
 
             <div class="dashboard-section">
-                <h2 class="section-main-title">📈 Annual Strategy: 2025 Consolidated</h2>
-                <p class="section-subtitle">Financial performance based on year-end accounting closing (Jan-Dec).</p>
+                <h2 class="section-main-title">📈 Annual Strategy: Consolidated</h2>
+                <p class="section-subtitle">Financial performance based on year-end accounting closing.</p>
                 
                 <div class="stat-grid">
                     <div class="stat-card annual-rev">
                         <h3 id="annualRevenue">$0</h3>
-                        <p>Total Revenue 2025</p>
+                        <p>Total Revenue (Selected View)</p>
                     </div>
                     <div class="stat-card annual-gross">
                         <h3 id="annualGross">$0</h3>
@@ -123,7 +139,7 @@
                 </div>
 
                 <div class="chart-box full-width-chart">
-                    <h3>2025 Profitability Trend (P&L Analysis)</h3>
+                    <h3>Profitability Trend (P&L Analysis)</h3>
                     <canvas id="profitabilityTrendChart"></canvas>
                 </div>
             </div>
@@ -135,10 +151,12 @@
                 <p class="section-subtitle">Granular analysis by client, business category, and real-time transactions.</p>
 
                 <div class="controls">
-                    <select id="clientFilter"><option value="">All Clients</option></select>
-                    <select id="periodFilter"><option value="">All Quarters</option></select>
-                    <select id="monthFilter"><option value="">Sep - Current Range</option></select>
+                    <select id="periodFilter"><option value="">Quarters</option></select>
+                    <select id="monthFilter"><option value="">Months 2025-now</option></select>
                     <button onclick="loadData()" class="refresh-btn">🔄 Refresh Data</button>
+                    
+                    <button onclick="openCompareModal()" class="compare-btn">Compare Periods</button>
+                    
                     <span id="loadingMessage" style="display:none; color:#666;">Loading...</span>
                 </div>
 
@@ -197,7 +215,61 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <div id="compareModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>⚖️ Financial Comparison</h2>
+            <button onclick="closeCompareModal()" class="close-modal">&times;</button>
+        </div>
+
+        <div class="compare-controls">
+            <div>
+                <label class="compare-label">Comparison Type</label>
+                <select id="compareType" onchange="updateCompareOptions()" style="width:100%">
+                    <option value="year">Annual (Year vs Year)</option>
+                    <option value="semester">Semiannual (S1 vs S2)</option>
+                    <option value="quarter">Quarterly (Q1 vs Q2)</option>
+                </select>
+            </div>
+            <div>
+                <label class="compare-label">Period A (Baseline)</label>
+                <select id="periodA" style="width:100%"></select>
+            </div>
+            <div>
+                <label class="compare-label">Period B (Current)</label>
+                <select id="periodB" style="width:100%"></select>
+            </div>
+            <div style="display:flex; align-items:end;">
+                <button onclick="executeComparison()" class="refresh-btn" style="width:100%">Run Analysis</button>
+            </div>
+        </div>
+
+        <div id="compareResults" style="display:none;">
+            <div class="stat-grid" style="margin-top: 30px;">
+                <div class="stat-card">
+                    <h3>Revenue Variance</h3>
+                    <h2 id="diffRevenue">$0</h2>
+                    <p id="pctRevenue">0%</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Gross Profit Variance</h3>
+                    <h2 id="diffGross">$0</h2>
+                    <p id="pctGross">0%</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Net Income Variance</h3>
+                    <h2 id="diffNet">$0</h2>
+                    <p id="pctNet">0%</p>
+                </div>
+            </div>
+
+            <div class="chart-box" style="height: 350px; margin-top:20px;">
+                <canvas id="compareChart"></canvas>
+            </div>
+        </div>
+    </div>
+    </div>
+
     <script src="index3.js"></script>
 </body>
 </html>
