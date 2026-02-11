@@ -50,12 +50,12 @@
 
         /* TABLE */
         .table-wrapper { overflow-x: auto; max-height: 450px; border: 1px solid #edf2f7; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
+        table { width: 100%; border-collapse: collapse; text-align: center; }
         th { background: #f8fafc; padding: 15px; font-size: 0.9em; color: #4a5568; position: sticky; top: 0; }
         td { padding: 15px; border-top: 1px solid #edf2f7; font-size: 0.95em; }
         
         /* HEADER BUTTONS */
-        .logout-btn { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        .logout-btn { background: #f5054d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px; font-weight: 600; transition: background 0.2s; }
         .home-btn { background: #34495e; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px; font-weight: 600; transition: background 0.2s; }
         .home-btn:hover { background: #2c3e50; }
 
@@ -84,6 +84,23 @@
         /* Colores para variaciones */
         .text-green { color: #2ecc71; font-weight: bold; }
         .text-red { color: #e74c3c; font-weight: bold; }
+
+        /* Estilo para valores positivos (Ganancia) */
+        .net-positive {
+            color: #28a745; /* Verde */
+            font-weight: bold;
+        }
+
+        /* Estilo para valores negativos (Pérdida) */
+        .net-negative {
+            color: #dc3545; /* Rojo */
+            font-weight: bold;
+        }
+
+        /* Un pequeño margen para el triangulo */
+        .trend-icon {
+            margin-right: 5px;
+        }
 
         @media (max-width: 1000px) { .charts-row { grid-template-columns: 1fr; } }
     </style>
@@ -114,14 +131,14 @@
                     <p>Executive Billing & Profitability Intelligence</p>
                 </div>
                 <div>
-                    <button class="home-btn" onclick="window.location.href='index.html'">🏠 Home</button>
+                    <button class="home-btn" onclick="window.location.href='index.html'">Home</button>
                     <button class="logout-btn" onclick="handleLogout()">Logout</button>
                 </div>
             </div>
 
             <div class="dashboard-section">
-                <h2 class="section-main-title">📈 Annual Strategy: Consolidated</h2>
-                <p class="section-subtitle">Financial performance based on year-end accounting closing.</p>
+                <h2 class="section-main-title">📈 Annual Performance 2025 – Present</h2>
+                <p class="section-subtitle">Financial performance analysis by month, quarter, semester, and year.</p>
                 
                 <div class="stat-grid">
                     <div class="stat-card annual-rev">
@@ -147,12 +164,11 @@
             <hr class="section-divider">
 
             <div class="dashboard-section operational-section">
-                <h2 class="section-main-title">🔍 Operational Detail</h2>
-                <p class="section-subtitle">Granular analysis by client, business category, and real-time transactions.</p>
+                <h2 class="section-main-title">🔍 Operational Detail</h2>                
 
                 <div class="controls">
                     <select id="periodFilter"><option value="">Quarters</option></select>
-                    <select id="monthFilter"><option value="">Months 2025-now</option></select>
+                    <select id="monthFilter"><option value="">Months</option></select>
                     <button onclick="loadData()" class="refresh-btn">🔄 Refresh Data</button>
                     
                     <button onclick="openCompareModal()" class="compare-btn">Compare Periods</button>

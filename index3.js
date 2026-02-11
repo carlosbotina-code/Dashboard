@@ -132,8 +132,8 @@
                 return monthOrder[mA] - monthOrder[mB];
             });
 
-            fillSelect('periodFilter', periods, 'All Quarters');
-            fillSelect('monthFilter', sortedMonths, 'All Months');
+            fillSelect('periodFilter', periods, 'Quarters');
+            fillSelect('monthFilter', sortedMonths, 'Months');
         }
 
         function fillSelect(id, items, defaultText) {
@@ -251,7 +251,7 @@
                     labels: labels,
                     datasets: [
                         { label: 'Recruiting', data: recruitingData, backgroundColor: '#3498db' },
-                        { label: 'Services', data: servicesData, backgroundColor: '#9b59b6' },
+                        { label: 'Staff Aug/ProServ', data: servicesData, backgroundColor: '#9b59b6' },
                         { label: 'Guard', data: guardData, backgroundColor: '#1abc9c' },
                         { label: 'Misc', data: miscData, backgroundColor: '#95a5a6' }
                     ]
@@ -266,7 +266,7 @@
             charts.opMix = new Chart(ctxMix, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Recruiting', 'Services', 'Guard', 'Misc'],
+                    labels: ['Recruiting', 'Staff Aug/ProServ', 'Guard', 'Misc'],
                     datasets: [{
                         data: [totalRecruiting, totalServices, totalGuard, totalMisc],
                         backgroundColor: ['#3498db', '#9b59b6', '#1abc9c', '#95a5a6']
@@ -314,22 +314,36 @@
         }
 
         function renderTable(data) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
-            data.forEach(row => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${row.month} ${row.year}</strong></td>
-                        <td style="color:#1abc9c; font-weight:500;">${formatCurrency(row.val_guard)}</td>
-                        <td style="color:#3498db">${formatCurrency(row.val_recruiting)}</td>
-                        <td style="color:#9b59b6; font-weight:500;">${formatCurrency(row.val_services_combined)}</td>
-                        <td style="color:#95a5a6">${formatCurrency(row.val_misc)}</td>
-                        <td style="font-weight:bold; background:#f0f9ff">${formatCurrency(row.calculated_revenue)}</td>
-                        <td style="color:#f39c12">${formatCurrency(row.gross_profit)}</td>
-                        <td style="color:#e74c3c">${formatCurrency(row.net_income)}</td>
-                    </tr>`;
-            });
-        }
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        data.forEach(row => {
+            // 1. Lógica para determinar color e ícono
+            // Asumimos que row.net_income es un número. 
+            // Si es texto (ej: "500"), usa parseFloat(row.net_income)
+            const isPositive = row.net_income >= 0; 
+            
+            const netColor = isPositive ? '#28a745' : '#dc3545'; // Verde : Rojo
+            const netIcon = isPositive ? '▲' : '▼'; // Triángulo arriba : abajo
+
+            // 2. Construcción de la fila
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${row.month} ${row.year}</strong></td>
+                    <td style="color:#030606; font-weight:500;">${formatCurrency(row.val_guard)}</td>
+                    <td style="color:#030606">${formatCurrency(row.val_recruiting)}</td>
+                    <td style="color:#030606; font-weight:500;">${formatCurrency(row.val_services_combined)}</td>
+                    <td style="color:#030606">${formatCurrency(row.val_misc)}</td>
+                    <td style="font-weight:bold; background:#f0f9ff">${formatCurrency(row.calculated_revenue)}</td>
+                    <td style="color:#030606">${formatCurrency(row.gross_profit)}</td>
+                    
+                    <td style="color:${netColor}; font-weight:bold;">
+                        <span style="margin-right: 5px;">${netIcon}</span>
+                        ${formatCurrency(row.net_income)}
+                    </td>
+                </tr>`;
+        });
+    }
 
         function formatCurrency(val) {
             if (val === undefined || val === null) return '$0';
