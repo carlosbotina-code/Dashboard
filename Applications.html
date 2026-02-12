@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoho Recruit Applications Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div id="authContainer" style="display: none; justify-content: center; align-items: center; min-height: 100vh;">
+        <div class="stat-card" style="width: 100%; max-width: 400px; padding: 40px;">
+            <h2 style="margin-bottom: 20px; color: #333;">🔒 Private Access</h2>
+            <div class="search-box" style="margin-bottom: 15px;">
+                <input type="email" id="authEmail" placeholder="email">
+            </div>
+            <div class="search-box" style="margin-bottom: 15px;">
+                <input type="password" id="authPassword" placeholder="password">
+            </div>
+            <div class="filter-group" style="justify-content: center; width: 100%;">
+                <button onclick="handleLogin()" style="width: 100%; padding: 15px;">Login</button>
+            </div>
+            <p id="authError" style="color: #d32f2f; margin-top: 15px; font-size: 14px; font-weight: bold;"></p>
+        </div>
+    </div>
+
+    <div id="dashboardContent" style="display: none;">
+        
+        <div style="max-width: 1400px; margin: 0 auto; text-align: right; padding: 10px 20px;">
+            <button style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="window.location.href='index.html'">Home</button>
+            <button onclick="handleLogout()" style="background: rgba(225, 22, 22, 0.841); color: white; border: 1px solid white; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Logout</button>
+        </div>
+
+        <div class="container">
+            <div class="header">
+                <h1>Zoho Recruit Applications Dashboard</h1>
+                <p>Real-time candidate management and tracking system</p>
+            </div>
+            <!--
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 id="totalApps">0</h3>
+                    <p>Total Applications</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="activePipeline">0</h3>
+                    <p>Active Pipeline</p> 
+                </div>
+                <div class="stat-card">
+                    <h3 id="hiredCount">0</h3>
+                    <p>Hired Candidates</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="conversionRate">0%</h3>
+                    <p>Conversion Rate</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="lastSync">---</h3>
+                    <p>Last Sync</p>
+                </div>
+            </div>
+            -->
+            <div class="zoho-wrapper" style="margin-top: 30px;">
+                               
+                <div class="zoho-card">
+                    <iframe 
+                        src="https://analytics.zoho.com/open-view/3137624000000238743" 
+                        class="zoho-iframe"
+                        allowtransparency="true">
+                    </iframe>
+                </div>
+            </div>
+
+            <div class="pagination-container">
+                <button id="prevPage" onclick="changePage(-1)">Previous</button>
+                <span id="pageIndicator">Page 1</span>
+                <button id="nextPage" onclick="changePage(1)">Next</button>
+            </div>
+
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search by name, email, client or job...">
+                </div>
+                <div class="filter-group">
+                    <select id="statusFilter">
+                        <option value="">All Statuses</option>
+                    </select>                
+
+                    <select id="clientFilter">
+                        <option value="">All Clients</option>
+                    </select>
+
+                    <select id="stageFilter">
+                        <option value="">All Recruiters</option>
+                    </select>                
+
+                    <button onclick="loadAllData()">🔄 Refresh</button>
+                 </div>
+            </div>
+
+            <div id="errorMessage"></div>
+            <div id="loadingMessage" class="loading">
+                <div class="spinner"></div>
+                <p>Loading application data...</p>
+            </div>
+
+            <div class="table-container" id="tableContainer" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Candidate / Position</th>
+                            <th>Client</th>
+                            <th>Status</th>
+                            <th>Acc. Manager</th>
+                            <th>Recruiter</th>
+                            <th>Email</th>
+                            <th>Created</th>
+                            <th>Comp.</th> 
+                        </tr>
+                    </thead>
+                    <tbody id="applicationsBody"></tbody>
+                </table>
+            </div>            
+        </div>
+
+        <div class="detail-view" id="detailView">
+            <div class="detail-content">
+                <button class="close-btn" onclick="closeDetail()">×</button>
+                <h2 id="detailName">Candidate Details</h2>
+                <div class="detail-grid" id="detailGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="dashboard.js"></script> 
+</body>
+</html>

@@ -488,7 +488,7 @@ function renderFinancialTable(data) {
 
             <td>${exitDate.toLocaleDateString()}</td>
 
-            <td style="text-align: right;">${fmt(rec.totalCommission)}</td>
+            <td style="text-align: center;">${fmt(rec.totalCommission)}</td>
 
             <td style="font-weight: bold; color: ${finalProfit >= 0 ? '#2e7d32' : '#c62828'};">
 
