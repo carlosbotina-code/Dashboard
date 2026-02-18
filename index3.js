@@ -511,3 +511,64 @@
             document.getElementById('monthFilter').addEventListener('change', applyFilters);
             checkSession();
         });
+
+        // Function to open/close the modal
+function openNewPeriodModal() {
+    document.getElementById('newPeriodModal').style.display = 'flex';
+}
+
+function closeNewPeriodModal() {
+    document.getElementById('newPeriodModal').style.display = 'none';
+}
+
+// Function to handle the form submission
+async function handleNewPeriod(event) {
+    event.preventDefault();
+    
+    // 1. Capture values exactly as typed
+    const year = parseInt(document.getElementById('newYear').value);
+    const month = document.getElementById('newMonth').value;
+    const recruiting = parseFloat(document.getElementById('newRecruiting').value) || 0;
+    const staff = parseFloat(document.getElementById('newStaff').value) || 0;
+    const proServ = parseFloat(document.getElementById('newProServ').value) || 0;
+    const guard = parseFloat(document.getElementById('newGuard').value) || 0;
+    const misc = parseFloat(document.getElementById('newMisc').value) || 0;
+    
+    // Manual inputs for Gross and Net
+    const gross_profit = parseFloat(document.getElementById('newGross').value) || 0;
+    const net_income = parseFloat(document.getElementById('newNet').value) || 0;
+
+    // 2. Prepare the object for Supabase
+    const newEntry = {
+        year,
+        month,
+        recruiting,
+        staff_aug: staff,
+        proserv_services: proServ,
+        guard,
+        misc,
+        gross_profit,
+        net_income,
+        created_at: new Date().toISOString()
+    };
+
+    try {
+        // Use supabaseClient (matching your configuration)
+        const { data, error } = await supabaseClient
+            .from('monthly_financial_summary')
+            .insert([newEntry]);
+
+        if (error) throw error;
+
+        alert('✅ Entry saved successfully!');
+        closeNewPeriodModal();
+        document.getElementById('newPeriodForm').reset();
+        
+        // Refresh dashboard and table
+        if (typeof loadData === "function") loadData();
+
+    } catch (error) {
+        console.error('Database Error:', error);
+        alert('❌ Error saving to database: ' + error.message);
+    }
+}
