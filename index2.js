@@ -281,23 +281,52 @@ function applyLocalFilters() {
 
        
 
-        let matchDate = true;
+        // CÓDIGO A REEMPLAZAR:
+// let matchDate = true;
+// if (item.start_date && dateVal) { ... } else if (dateVal) matchDate = false;
 
-        if (item.start_date && dateVal) {
+// NUEVO CÓDIGO:
+let matchDate = true;
 
-            const d = new Date(item.start_date + 'T12:00:00');
+if (item.start_date && dateVal) {
+    const d = new Date(item.start_date + 'T12:00:00');
+    const now = new Date();
+    
+    const itemMonth = d.getMonth(); // Enero es 0, Diciembre es 11
+    const itemYear = d.getFullYear();
 
-            const now = new Date();
-
-            if (dateVal === 'overdue') matchDate = d < now;
-
-            else if (dateVal === 'this_month') {
-
-                matchDate = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-
-            }
-
-        } else if (dateVal) matchDate = false;
+    switch(dateVal) {
+        case 'sep_2025': 
+            matchDate = (itemMonth === 8 && itemYear === 2025); 
+            break;
+        case 'oct_2025': 
+            matchDate = (itemMonth === 9 && itemYear === 2025); 
+            break;
+        case 'nov_2025': 
+            matchDate = (itemMonth === 10 && itemYear === 2025); 
+            break;
+        case 'dec_2025': 
+            matchDate = (itemMonth === 11 && itemYear === 2025); 
+            break;
+        case 'jan_2026': 
+            matchDate = (itemMonth === 0 && itemYear === 2026); 
+            break;
+        case 'feb_2026': 
+            matchDate = (itemMonth === 1 && itemYear === 2026); 
+            break;
+        case 'this_year': 
+            matchDate = (itemYear === now.getFullYear()); 
+            break;
+        case 'prev_year': 
+            matchDate = (itemYear === (now.getFullYear() - 1)); 
+            break;
+        default: 
+            matchDate = true;
+    }
+} else if (dateVal) {
+    // Si hay un filtro seleccionado pero el item no tiene start_date
+    matchDate = false;
+}
 
 
         return matchRecruiter && matchClient && matchPurpose && matchDate;

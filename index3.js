@@ -525,20 +525,39 @@ function closeNewPeriodModal() {
 async function handleNewPeriod(event) {
     event.preventDefault();
     
-    // 1. Capture values exactly as typed
-    const year = parseInt(document.getElementById('newYear').value);
-    const month = document.getElementById('newMonth').value;
-    const recruiting = parseFloat(document.getElementById('newRecruiting').value) || 0;
-    const staff = parseFloat(document.getElementById('newStaff').value) || 0;
-    const proServ = parseFloat(document.getElementById('newProServ').value) || 0;
-    const guard = parseFloat(document.getElementById('newGuard').value) || 0;
-    const misc = parseFloat(document.getElementById('newMisc').value) || 0;
-    
-    // Manual inputs for Gross and Net
-    const gross_profit = parseFloat(document.getElementById('newGross').value) || 0;
-    const net_income = parseFloat(document.getElementById('newNet').value) || 0;
+    // 1. Capturar elementos del DOM para validación
+    const yearInput = document.getElementById('newYear');
+    const monthInput = document.getElementById('newMonth');
+    const recruitingInput = document.getElementById('newRecruiting');
+    const staffInput = document.getElementById('newStaff');
+    const proServInput = document.getElementById('newProServ');
+    const guardInput = document.getElementById('newGuard');
+    const miscInput = document.getElementById('newMisc');
+    const grossInput = document.getElementById('newGross');
+    const netInput = document.getElementById('newNet');
 
-    // 2. Prepare the object for Supabase
+    // 2. VALIDACIÓN: Verificar que ningún campo esté vacío
+    // .value.trim() elimina espacios en blanco. 
+    if (!yearInput.value || !monthInput.value || !recruitingInput.value || 
+        !staffInput.value || !proServInput.value || !guardInput.value || 
+        !miscInput.value || !grossInput.value || !netInput.value) {
+        
+        alert('⚠️ All fields are required. Please do not leave any field blank.');
+        return; // Detiene la ejecución si hay campos vacíos
+    }
+
+    // 3. Convertir valores después de validar
+    const year = parseInt(yearInput.value);
+    const month = monthInput.value;
+    const recruiting = parseFloat(recruitingInput.value);
+    const staff = parseFloat(staffInput.value);
+    const proServ = parseFloat(proServInput.value);
+    const guard = parseFloat(guardInput.value);
+    const misc = parseFloat(miscInput.value);
+    const gross_profit = parseFloat(grossInput.value);
+    const net_income = parseFloat(netInput.value);
+
+    // 4. Preparar el objeto para Supabase
     const newEntry = {
         year,
         month,
@@ -553,7 +572,6 @@ async function handleNewPeriod(event) {
     };
 
     try {
-        // Use supabaseClient (matching your configuration)
         const { data, error } = await supabaseClient
             .from('monthly_financial_summary')
             .insert([newEntry]);
@@ -564,7 +582,6 @@ async function handleNewPeriod(event) {
         closeNewPeriodModal();
         document.getElementById('newPeriodForm').reset();
         
-        // Refresh dashboard and table
         if (typeof loadData === "function") loadData();
 
     } catch (error) {
