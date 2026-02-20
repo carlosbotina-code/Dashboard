@@ -121,6 +121,21 @@
             text-align: center; /* Añadido para centrar el contenido de las celdas */
             vertical-align: middle; /* Asegura que el contenido esté centrado verticalmente */
         }
+
+        /* --- Efecto de filas intercaladas --- */
+        tbody tr:nth-child(even) {
+            background-color: #f8fafd; /* Un azul muy sutil para contrastar con el blanco */
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #ffffff; /* Blanco para las filas impares */
+        }
+
+        /* --- Efecto al pasar el cursor (Hover) --- */
+        tbody tr:hover {
+            background-color: #e3f2fd; /* Un azul un poco más marcado al pasar el mouse */
+            transition: background-color 0.2s ease;
+        }
         
         /* Login */
         #authContainer { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
@@ -238,8 +253,7 @@
                 <h3>Detailed Placements</h3>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Action</th>
+                        <tr>                            
                             <th>Candidate</th>
                             <th>Purpose</th>
                             <th>Client</th>

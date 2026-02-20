@@ -340,6 +340,21 @@
             display: none;
         }
 
+        /* --- Efecto de filas intercaladas --- */
+        tbody tr:nth-child(even) {
+            background-color: #f8fafd; /* Un azul muy sutil para contrastar con el blanco */
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #ffffff; /* Blanco para las filas impares */
+        }
+
+        /* --- Efecto al pasar el cursor (Hover) --- */
+        tbody tr:hover {
+            background-color: #e3f2fd; /* Un azul un poco más marcado al pasar el mouse */
+            transition: background-color 0.2s ease;
+        }
+
         .pagination-container {
         display: flex;
         justify-content: center;

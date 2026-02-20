@@ -163,34 +163,27 @@ async function loadData() {
 
 
         allRecords = data ? data.map(item => {
-
             const candidate = Array.isArray(item.Candidates) ? (item.Candidates[0] || {}) : (item.Candidates || {});
-
             const job = Array.isArray(item.Job_Openings) ? (item.Job_Openings[0] || {}) : (item.Job_Openings || {});
 
+            // --- NUEVO CÓDIGO AQUÍ ---
+            let recruiterName = job.assigned_recruiter || 'Unassigned';
+            if (recruiterName.includes('David')) {
+                recruiterName = 'David Rincon (Inactive)';
+            }
+            // -------------------------
 
             return {
-
                 id: item.application_id,
-
                 status: item.application_status || 'New',
-
                 compensation: item.compensation || '-',
-
                 Candidate_Name: candidate.candidate_name || 'Unknown Candidate',
-
                 Client_name: job.client_name || 'N/A',
-
-                Assigned_Recruiter: job.assigned_recruiter || 'Unassigned',
-
+                Assigned_Recruiter: recruiterName, // <-- Usamos la variable modificada
                 Job_porpuse: job.job_purpose === 'External' ? 'Rec' : (job.job_purpose || 'No Title'),                    
-
                 start_date: item.contract_start_date || null
-
             };
-
         }) : [];
-
 
         populateFilters(allRecords);
 
@@ -350,9 +343,7 @@ function renderTable(data) {
 
 
         row.innerHTML = `
-
-            <td><button class="view-btn" onclick="openDetail('${item.id}')">View</button></td>
-
+            
             <td><strong>${item.Candidate_Name}</strong></td>
 
             <td>${item.Job_porpuse}</td>
@@ -567,79 +558,165 @@ function updateKPIs(data) {
 
 
 function renderPerformanceCharts(data) {
-
     const types = { 'Staff Aug': 0, 'Rec': 0, 'Guard': 0 };
-
-    const recruitersCount = {}, monthlyData = {};
-
+    const recruitersCount = {};
+    const monthlyStats = {}; // Cambiamos monthlyData por monthlyStats para guardar más detalles
 
     data.forEach(item => {
-
+        // 1. Tipos de trabajo
         if(types[item.Job_porpuse] !== undefined) types[item.Job_porpuse]++;
-
+        
+        // 2. Reclutadores
         const rec = item.Assigned_Recruiter || 'Unassigned';
-
         recruitersCount[rec] = (recruitersCount[rec] || 0) + 1;
 
-
+        // 3. Datos Mensuales (Placements + Revenue)
         if (item.start_date) {
-
             const date = new Date(item.start_date + 'T12:00:00');
-
             const monthLabel = date.toLocaleString('en-us', { month: 'short', year: '2-digit' });
 
-            monthlyData[monthLabel] = (monthlyData[monthLabel] || 0) + 1;
+            // Inicializamos el mes si no existe
+            if (!monthlyStats[monthLabel]) {
+                monthlyStats[monthLabel] = { placements: 0, revenue: 0 };
+            }
 
+            // Sumamos 1 placement
+            monthlyStats[monthLabel].placements += 1;
+
+            // Calculamos y sumamos el revenue
+            let comp = parseFloat(String(item.compensation).replace(/[^0-9.-]+/g,"")) || 0;
+            if (comp > 0) {
+                let fee = (item.Job_porpuse === 'Staff Aug' ? 0.1 : 0.15);
+                let revenue = Math.max((comp * 12) * fee, 3500);
+                monthlyStats[monthLabel].revenue += revenue;
+            }
         }
-
     });
 
-
-    // Función auxiliar para renderizar gráficos de forma segura
-
+    // ==========================================
+    // Función auxiliar para gráficos simples (Pie y Bar)
+    // ==========================================
     const render = (id, type, labels, datasetLabel, datasetData, colors) => {
-
         const canvas = document.getElementById(id);
-
         if(!canvas) return;
-
         if(charts[id]) charts[id].destroy();
 
+        const options = { responsive: true, maintainAspectRatio: false };
+
+        // Agregamos porcentajes si es el gráfico circular
+        if (type === 'pie') {
+            options.plugins = {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) label += ': ';
+                            let total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                            let value = context.parsed;
+                            let percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                            return `${label}${value} (${percentage})`;
+                        }
+                    }
+                }
+            };
+        }
+
         charts[id] = new Chart(canvas, {
-
             type: type,
-
             data: {
-
                 labels: labels,
-
                 datasets: [{
-
                     label: datasetLabel,
-
                     data: datasetData,
-
                     backgroundColor: colors,
-
-                    borderColor: type === 'line' ? '#1976d2' : 'transparent'
-
+                    borderColor: type === 'line' ? '#1976d2' : 'transparent',
+                    borderWidth: 1
                 }]
-
             },
-
-            options: { responsive: true, maintainAspectRatio: false }
-
+            options: options
         });
-
     };
 
-
+    // Renderizamos los dos gráficos sencillos
     render('typeChart', 'pie', Object.keys(types), 'Type', Object.values(types), ['#1976d2', '#7b1fa2', '#f57c00']);
-
     render('recruiterChart', 'bar', Object.keys(recruitersCount), 'Placements', Object.values(recruitersCount), '#1976d2');
 
-    render('monthlyChart', 'line', Object.keys(monthlyData), 'Placements', Object.values(monthlyData), '#1976d2');
+    // ==========================================
+    // Lógica para el Gráfico Combinado Mensual
+    // ==========================================
+    const monthlyCanvas = document.getElementById('monthlyChart');
+    if(monthlyCanvas) {
+        if(charts['monthlyChart']) charts['monthlyChart'].destroy();
 
+        const monthLabels = Object.keys(monthlyStats);
+        const placementsData = monthLabels.map(m => monthlyStats[m].placements);
+        const revenueData = monthLabels.map(m => monthlyStats[m].revenue);
+
+        charts['monthlyChart'] = new Chart(monthlyCanvas, {
+            type: 'bar', // Tipo base
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: 'Revenue ($)',
+                        data: revenueData,
+                        type: 'line', // Forzamos a que este sea una línea
+                        borderColor: '#2e7d32', // Verde
+                        backgroundColor: '#2e7d32',
+                        yAxisID: 'y-revenue', // Lo atamos al eje Y derecho
+                        tension: 0.3, // Curva suave
+                        borderWidth: 3
+                    },
+                    {
+                        label: 'Placements',
+                        data: placementsData,
+                        type: 'bar', // Forzamos a que este sea barra
+                        backgroundColor: '#1976d2', // Azul
+                        yAxisID: 'y-placements' // Lo atamos al eje Y izquierdo
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    'y-placements': {
+                        type: 'linear',
+                        position: 'left',
+                        beginAtZero: true,
+                        title: { display: true, text: 'Nº of Placements', color: '#1976d2', font: { weight: 'bold' } },
+                        ticks: { stepSize: 1 } // Para que muestre números enteros
+                    },
+                    'y-revenue': {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        title: { display: true, text: 'Revenue ($)', color: '#2e7d32', font: { weight: 'bold' } },
+                        grid: { drawOnChartArea: false }, // Evita que se crucen las líneas de fondo de los dos ejes
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString(); // Formato de moneda
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                let value = context.parsed.y;
+                                if (label.includes('Revenue')) {
+                                    return label + ': $' + value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+                                }
+                                return label + ': ' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
 
 

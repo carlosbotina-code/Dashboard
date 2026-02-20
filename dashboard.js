@@ -206,14 +206,18 @@ function updatePaginationControls() {
 }
 
 function changePage(direction) {
-    const totalPages = Math.ceil(filteredApplications.length / PAGE_SIZE);
-    const newPage = currentPage + direction;
+    const totalPages = Math.ceil(filteredApplications.length / PAGE_SIZE);
+    const newPage = currentPage + direction;
 
-    if (newPage >= 0 && newPage < totalPages) {
-        currentPage = newPage;
-        renderCurrentPage();
-        window.scrollTo(0, 0);
-    }
+    if (newPage >= 0 && newPage < totalPages) {
+        currentPage = newPage;
+        renderCurrentPage();
+        
+        // ¡ESTA ES LA LÍNEA MÁGICA QUE FALTA!
+        updatePaginationControls(); 
+        
+        window.scrollTo(0, 0);
+    }
 }
 
 function renderCurrentPage() {
@@ -240,8 +244,7 @@ function displayApplicationsTable(apps) {
             const candName = safeGet(app, 'Candidates', 'candidate_name') || "Unknown";
             const jobTitle = safeGet(app, 'Job_Openings', 'contract_title') || "No Title";
             const clientName = safeGet(app, 'Job_Openings', 'client_name') || "-";
-            const recruiter = safeGet(app, 'Job_Openings', 'assigned_recruiter') || "-";
-            const accManager = safeGet(app, 'Candidates', 'owner') || "-";
+            const recruiter = safeGet(app, 'Job_Openings', 'assigned_recruiter') || "-";            
             const email = app.email || safeGet(app, 'Candidates', 'email') || "-";
             const status = app.application_status || "New";
             const createdDate = app.created_at ? new Date(app.created_at).toLocaleDateString() : '-';
@@ -251,8 +254,7 @@ function displayApplicationsTable(apps) {
                 <td><button class="view-btn">View</button></td>
                 <td><strong>${candName}</strong><br><small style="color:#666">${jobTitle}</small></td>
                 <td>${clientName}</td>
-                <td><span class="status-badge">${status}</span></td>
-                <td>${accManager}</td>
+                <td><span class="status-badge">${status}</span></td>                
                 <td>${recruiter}</td>
                 <td>${email}</td>
                 <td>${createdDate}</td>
@@ -276,8 +278,7 @@ function viewDetails(app) {
     const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString() : 'Pending';
     
     const job = safeGet(app, 'Job_Openings', 'contract_title');
-    const client = safeGet(app, 'Job_Openings', 'client_name');
-    const accMan = safeGet(app, 'Candidates', 'owner');
+    const client = safeGet(app, 'Job_Openings', 'client_name');    
     const rec = safeGet(app, 'Job_Openings', 'assigned_recruiter');
     const phone = safeGet(app, 'Candidates', 'phone');
     const linkedIn = safeGet(app, 'Candidates', 'linkedin_url');
@@ -287,8 +288,7 @@ function viewDetails(app) {
     grid.innerHTML = `
         <div class="detail-item"><label>Candidate</label><p>${candName}</p></div>      
         <div class="detail-item"><label>Position</label><p>${job || 'N/A'}</p></div>
-        <div class="detail-item"><label>Client</label><p><strong>${client || 'N/A'}</strong></p></div>
-        <div class="detail-item"><label>Account Manager</label><p>${accMan || 'N/A'}</p></div>
+        <div class="detail-item"><label>Client</label><p><strong>${client || 'N/A'}</strong></p></div>       
         <div class="detail-item"><label>Recruiter</label><p>${rec || 'N/A'}</p></div>
         <div class="detail-item"><label>Status</label><p><span class="status-badge">${app.application_status || 'N/A'}</span></p></div>
         <div class="detail-item"><label>Email</label><p>${app.email || 'N/A'}</p></div>

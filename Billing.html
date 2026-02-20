@@ -53,6 +53,21 @@
         table { width: 100%; border-collapse: collapse; text-align: center; }
         th { background: #f8fafc; padding: 15px; font-size: 0.9em; color: #4a5568; position: sticky; top: 0; }
         td { padding: 15px; border-top: 1px solid #edf2f7; font-size: 0.95em; }
+
+        /* --- Efecto de filas intercaladas --- */
+        tbody tr:nth-child(even) {
+            background-color: #f8fafd; /* Un azul muy sutil para contrastar con el blanco */
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #ffffff; /* Blanco para las filas impares */
+        }
+
+        /* --- Efecto al pasar el cursor (Hover) --- */
+        tbody tr:hover {
+            background-color: #e3f2fd; /* Un azul un poco más marcado al pasar el mouse */
+            transition: background-color 0.2s ease;
+        }
         
         /* HEADER BUTTONS */
         .logout-btn { background: #f5054d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px; font-weight: 600; transition: background 0.2s; }
