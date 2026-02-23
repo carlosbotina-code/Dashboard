@@ -318,9 +318,6 @@
         tbody.innerHTML = '';
 
         data.forEach(row => {
-            // 1. Lógica para determinar color e ícono
-            // Asumimos que row.net_income es un número. 
-            // Si es texto (ej: "500"), usa parseFloat(row.net_income)
             const isPositive = row.net_income >= 0; 
             
             const netColor = isPositive ? '#28a745' : '#dc3545'; // Verde : Rojo
@@ -389,11 +386,20 @@
                 } else if (type === 'semester') {
                     const s = (monthOrder[row.month] <= 6) ? 'S1' : 'S2';
                     label = `${row.year} - ${s}`;
+                } else if (type === 'month') { // <--- NUEVA LÓGICA PARA MES
+                    label = `${row.month} ${row.year}`;
                 }
                 if(label) optionsSet.add(label);
             });
 
-            const sortedOptions = Array.from(optionsSet).sort().reverse();
+            // Ordenar opciones: Si es por mes, necesitamos un orden cronológico real
+            const sortedOptions = Array.from(optionsSet).sort((a, b) => {
+                if (type === 'month') {
+                    const [mA, yA] = a.split(' '); const [mB, yB] = b.split(' ');
+                    return yB !== yA ? yB - yA : monthOrder[mB] - monthOrder[mA];
+                }
+                return b.localeCompare(a);
+            });
             
             sortedOptions.forEach(opt => {
                 selectA.add(new Option(opt, opt));
@@ -439,11 +445,12 @@
                 } else if (type === 'semester') {
                     const s = (monthOrder[row.month] <= 6) ? 'S1' : 'S2';
                     rowLabel = `${row.year} - ${s}`;
+                } else if (type === 'month') { // <--- NUEVA LÓGICA PARA FILTRAR
+                    rowLabel = `${row.month} ${row.year}`;
                 }
                 return rowLabel === label;
             });
         }
-
         function calculateMetrics(data) {
             return {
                 revenue: data.reduce((sum, r) => sum + r.calculated_revenue, 0),

@@ -3,91 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Feedback</title>
+    <title>Dashboard Feedback - Dynamic</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
-        .card { background: white; padding: 30px; border-radius: 12px; max-width: 1000px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 12px; max-width: 1100px; margin: 20px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* Split Layout */
-        .split-view { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .split-view { display: grid; grid-template-columns: 1fr 1.2fr; gap: 40px; }
         
         /* Form Styles */
-        textarea { width: 100%; height: 120px; margin: 15px 0; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; resize: vertical; }
-        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.9em; font-weight: 600; color: #2c3e50; margin-bottom: 5px; }
+        select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-family: inherit; }
+        select:disabled { background-color: #f0f0f0; cursor: not-allowed; color: #7f8c8d; }
+        textarea { height: 100px; resize: vertical; }
+        
+        button { background: #3498db; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; transition: background 0.2s; }
         button:hover { background: #2980b9; }
 
         /* List Styles */
-        .list-container { max-height: 500px; overflow-y: auto; padding-right: 5px; }
-        .feedback-item { display: flex; align-items: flex-start; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; background: #fafafa; border-radius: 6px; margin-bottom: 10px; }
-        .resolved { text-decoration: line-through; color: #95a5a6; }
-        .meta-info { display: block; font-size: 0.8em; color: #7f8c8d; margin-top: 5px; }
+        .list-container { max-height: 600px; overflow-y: auto; padding-right: 10px; }
+        .feedback-item { padding: 15px; border-radius: 8px; background: #fff; border: 1px solid #edf2f7; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
         
-        @media (max-width: 768px) {
-            .split-view { grid-template-columns: 1fr; gap: 20px; }
-        }
+        /* Badges */
+        .badge { font-size: 0.70em; padding: 3px 7px; border-radius: 4px; font-weight: bold; text-transform: uppercase; margin-right: 5px; }
+        .badge-category { background: #e1f5fe; color: #0288d1; }
+        .badge-component { background: #f3e5f5; color: #7b1fa2; }
+        
+        .resolved { text-decoration: line-through; color: #95a5a6; }
+        .meta-info { display: block; font-size: 0.8em; color: #7f8c8d; margin-top: 8px; border-top: 1px solid #f1f1f1; padding-top: 8px; }
+        
+        @media (max-width: 850px) { .split-view { grid-template-columns: 1fr; } }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
     <div class="card">
-        <a href="index.html" style="text-decoration: none; color: #3498db; display: inline-block; margin-bottom: 20px;">← Back to Dashboard</a>
+        <a href="index.html" style="text-decoration: none; color: #3498db; display: inline-block; margin-bottom: 20px; font-weight: 600;">← Back to Dashboard</a>
         
         <div class="split-view">
             <div id="formSection">
                 <h2 style="margin-top: 0;">💡 Send Feedback</h2>
-                <p style="color: #666;">What would you like to improve or what issues have you encountered?</p>
+                <p style="color: #666; font-size: 0.9em;">Report issues or suggest improvements for this specific component.</p>
                 
-                <textarea id="feedbackText" placeholder="Write your comments here..."></textarea>
-                <button onclick="sendFeedback()">Submit Comment</button>
-                <p id="msg" style="color: green; margin-top: 10px; min-height: 20px;"></p>
+                <div class="form-group">
+                    <label>Reference Component</label>
+                    <select id="fbComponentTitle">                        
+                        <option value="Billing Information">Billing Information</option>
+                        <option value="Commisions">Commisions</option>
+                        <option value="Applications">Applications</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Feedback Category</label>
+                    <select id="fbCategory">
+                        <option value="data question/issue">Data Question</option>
+                        <option value="display problem">Display Problem</option>
+                        <option value="enhancement suggestion">Enhancement Suggestion</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea id="feedbackText" placeholder="Describe the issue or suggestion in detail..."></textarea>
+                </div>
+
+                <button onclick="sendFeedback()">Submit Feedback</button>
+                <p id="msg" style="color: green; margin-top: 10px; font-size: 0.9em; text-align: center; min-height: 20px;"></p>
             </div>
 
             <div id="listSection">
-                <h2 style="margin-top: 0;">📋 Recent Comments</h2>
+                <h2 style="margin-top: 0;">📋 Recent Activity</h2>
                 <div id="feedbackList" class="list-container">
-                    <p>Loading comments...</p>
+                    <p style="color: #999;">Loading comments...</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. CONFIGURATION
         const SUPABASE_URL = 'https://lmgpsbkbfeetdcgjxlbd.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_cWlfcyK-hFgRqKyId7V32A_fp72fDNt';
-
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function init() {
-            // Check session
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            
-            if (!session) { 
-                // If no session, redirect logic here if needed
-                console.log("User not logged in (Simulation Mode)");
+            // 1. Obtener y limpiar el componente desde la URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const componentParam = urlParams.get('component');
+
+            if (componentParam) {
+                const decodedComp = decodeURIComponent(componentParam);
+                const select = document.getElementById('fbComponentTitle');
+                
+                // Verificar si la opción existe
+                const exists = Array.from(select.options).some(opt => opt.value === decodedComp);
+                
+                if (!exists) {
+                    const newOpt = new Option(decodedComp, decodedComp);
+                    select.add(newOpt);
+                }
+                
+                // Seleccionar y BLOQUEAR
+                select.value = decodedComp;
+                select.disabled = true; 
             }
 
-            // NO ADMIN DISTINCTION
-            // Load the list for anyone who visits the page
             loadFeedback();
         }
 
-        // Send Function
         async function sendFeedback() {
             const textInput = document.getElementById('feedbackText');
+            const categoryInput = document.getElementById('fbCategory');
+            const componentInput = document.getElementById('fbComponentTitle');
             const msgLabel = document.getElementById('msg');
-            const text = textInput.value;
-
+            
             const { data: { session } } = await supabaseClient.auth.getSession();
-            const userEmail = session ? session.user.email : 'anonymous@user.com'; // Fallback
+            const userEmail = session ? session.user.email : 'anonymous@user.com';
 
-            if (!text.trim()) return alert("Please write something before submitting.");
+            if (!textInput.value.trim()) return alert("Please write a message.");
 
             msgLabel.textContent = "Sending...";
 
             const { error } = await supabaseClient.from('feedback').insert([
-                { user_email: userEmail, message: text }
+                { 
+                    user_email: userEmail, 
+                    message: textInput.value,
+                    category: categoryInput.value,
+                    component_title: componentInput.value, // Envía el valor aunque esté bloqueado
+                    is_resolved: false
+                }
             ]);
 
             if (error) {
@@ -95,17 +142,12 @@
                 msgLabel.textContent = "";
             } else {
                 textInput.value = "";
-                msgLabel.textContent = "Thank you! Your feedback has been sent.";
-                
-                // RELOAD LIST IMMEDIATELY
+                msgLabel.textContent = "Thank you! Your feedback has been registered.";
                 loadFeedback();
-                
-                // Clear success message after 3 seconds
                 setTimeout(() => { msgLabel.textContent = ""; }, 3000);
             }
         }
 
-        // Load List Function (Universal)
         async function loadFeedback() {
             const { data, error } = await supabaseClient
                 .from('feedback')
@@ -113,8 +155,7 @@
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.error(error);
-                document.getElementById('feedbackList').innerHTML = '<p style="color:red">Error loading list. Check RLS permissions.</p>';
+                document.getElementById('feedbackList').innerHTML = '<p style="color:red">Error loading list.</p>';
                 return;
             }
 
@@ -122,34 +163,31 @@
             listCont.innerHTML = data.length ? '' : '<p style="color: #999;">No comments yet.</p>';
 
             data.forEach(item => {
-                const date = new Date(item.created_at).toLocaleDateString();
+                const date = new Date(item.created_at).toLocaleDateString() + ' ' + new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 const div = document.createElement('div');
                 div.className = 'feedback-item';
                 
-                // Accessible checkbox for everyone as requested
                 div.innerHTML = `
-                    <div style="flex-grow: 1;">
-                        <strong class="${item.is_resolved ? 'resolved' : ''}" style="font-size: 1.05em;">${item.message}</strong>
-                        <span class="meta-info">From: ${item.user_email} • ${date}</span>
+                    <div class="item-header">
+                               <input type="checkbox" ${item.is_resolved ? 'checked' : ''} 
+                               onclick="toggleResolved('${item.id}', ${item.is_resolved})" 
+                               style="cursor: pointer;" title="Mark as resolved">
                     </div>
-                    <div style="margin-left: 15px; text-align: center;">
-                        <input type="checkbox" ${item.is_resolved ? 'checked' : ''} 
-                            onclick="toggleResolved('${item.id}', ${item.is_resolved})" 
-                            style="transform: scale(1.2); cursor: pointer;" title="Mark as resolved">
-                    </div>
+                    <strong class="${item.is_resolved ? 'resolved' : ''}" style="display: block; margin-top: 5px;">
+                        ${item.message}
+                    </strong>
+                    <span class="meta-info">
+                        <strong>${item.user_email}</strong> • ${date}
+                    </span>
                 `;
                 listCont.appendChild(div);
             });
         }
 
-        // Toggle Function (Universal)
         async function toggleResolved(id, currentState) {
-            // Note: This will fail if Supabase RLS policies only allow UPDATE to admins.
             const { error } = await supabaseClient.from('feedback').update({ is_resolved: !currentState }).eq('id', id);
-            
             if (error) {
-                alert("You do not have permission to edit this status.");
-                console.error(error);
+                alert("Permission denied or error updating status.");
             } else {
                 loadFeedback(); 
             }
