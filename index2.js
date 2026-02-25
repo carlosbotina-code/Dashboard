@@ -625,14 +625,39 @@ function renderPerformanceCharts(data) {
     // ==========================================
     // Función auxiliar para gráficos simples (Pie y Bar)
     // ==========================================
+    // ==========================================
+    // Función auxiliar para gráficos simples (Pie y Bar) CON DRILLDOWN
+    // ==========================================
     const render = (id, type, labels, datasetLabel, datasetData, colors) => {
         const canvas = document.getElementById(id);
         if(!canvas) return;
         if(charts[id]) charts[id].destroy();
 
-        const options = { responsive: true, maintainAspectRatio: false };
+        const options = { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            // NUEVO: Evento onClick para el Drilldown
+            onClick: (event, elements, chart) => {
+                if (elements.length > 0) {
+                    const elementIndex = elements[0].index;
+                    const labelClicked = chart.data.labels[elementIndex]; // Nombre clickeado (ej. "Juan")
 
-        // Agregamos porcentajes si es el gráfico circular
+                    // Solo aplicamos drilldown al gráfico de reclutadores
+                    if (id === 'recruiterChart') {
+                        // Filtramos los datos exactos que componen esa barra
+                        const detailedData = data.filter(item => {
+                            const rec = item.Assigned_Recruiter || 'Unassigned';
+                            return rec === labelClicked;
+                        });
+                        
+                        // Llamamos a la función que abre el modal
+                        openDrilldownModal(`Placements by ${labelClicked}`, detailedData);
+                    }
+                }
+            }
+        };
+
+        // Agregamos porcentajes si es el gráfico circular (se mantiene igual)
         if (type === 'pie') {
             options.plugins = {
                 tooltip: {
@@ -647,6 +672,13 @@ function renderPerformanceCharts(data) {
                         }
                     }
                 }
+            };
+        }
+
+        // Para indicar visualmente que se puede hacer clic en las barras
+        if (id === 'recruiterChart') {
+            options.onHover = (event, chartElement) => {
+                event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
             };
         }
 
@@ -748,6 +780,50 @@ function renderPerformanceCharts(data) {
     }
 }
 
+function openDrilldownModal(title, detailedData) {
+    const modal = document.getElementById('drilldownModal');
+    const titleEl = document.getElementById('drilldownModalTitle');
+    const tbody = document.getElementById('drilldownModalTableBody');
+
+    if (!modal || !tbody) return;
+
+    // Actualizamos el título
+    titleEl.textContent = title;
+
+    // Limpiamos la tabla
+    tbody.innerHTML = '';
+
+    // Llenamos la tabla con los registros detallados
+    detailedData.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${item.Candidate_Name || 'N/A'}</strong></td>
+            <td>${item.Job_porpuse || '-'}</td>
+            <td>${item.Client_name || '-'}</td>
+            <td>${item.compensation || '-'}</td>
+            <td>${item.start_date || '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Mostramos el modal
+    modal.style.display = 'flex';
+}
+
+function closeDrilldownModal() {
+    const modal = document.getElementById('drilldownModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Opcional: Cerrar el modal al hacer clic fuera de él
+window.addEventListener('click', (event) => {
+    const modal = document.getElementById('drilldownModal');
+    if (event.target === modal) {
+        closeDrilldownModal();
+    }
+});
 
 // ==========================================
 

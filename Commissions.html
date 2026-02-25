@@ -140,6 +140,26 @@
         /* Login */
         #authContainer { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 350px; }
+
+        /* Estilos básicos para el Modal de Drilldown */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content.drilldown-modal {
+            background: #fff; border-radius: 8px; width: 80%; max-width: 900px;
+            max-height: 80vh; display: flex; flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; border-bottom: 1px solid #eee;
+        }
+        .modal-header h2 { margin: 0; font-size: 1.2rem; color: #333; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666; }
+        .modal-body { padding: 20px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -278,6 +298,30 @@
             <div id="loadingMessage" style="text-align: center; padding: 20px; display: none;">Loading data...</div>
             <div id="errorMessage" style="color: red; text-align: center;"></div>
 
+        </div>
+    </div>
+
+    <div id="drilldownModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content drilldown-modal">
+            <div class="modal-header">
+                <h2 id="drilldownModalTitle">Detalles</h2>
+                <button onclick="closeDrilldownModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Purpose</th>
+                            <th>Client</th>
+                            <th>Compensation</th>
+                            <th>Start Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="drilldownModalTableBody">
+                        </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
