@@ -178,41 +178,65 @@
             </div>
 
             <div class="stats">
-                <div class="stat-card highlight">
-                    <h3 id="totalAssetValue">$0</h3>
-                    <p>Total Capital Value</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="totalAssets">0</h3>
-                    <p>Total Assets</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="activeAssets" style="color: var(--success);">0</h3>
-                    <p>Active / Operational</p>
-                </div>
-                <div class="stat-card danger">
-                    <h3 id="pendingMaintenance">0</h3>
-                    <p>Urgent Maintenance</p>
-                </div>
+            <div class="stat-card highlight">
+                <h3 id="totalAssetValue">$0</h3>
+                <p>Total Investment</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalAssets">0</h3>
+                <p>Total Assets</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="activeAssets" style="color: var(--success);">0</h3>
+                <p>Active Devices</p>
+            </div>
+            <div class="stat-card danger">
+                <h3 id="unassignedAssets" style="color: var(--warning);">0</h3>
+                <p>Unassigned / In Stock</p>
+            </div>
             </div>
 
-            <div class="controls">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Search Asset Name or Assigned Employee..." style="width: 95%;">
+            <div class="controls" style="display: flex; gap: 15px; flex-wrap: wrap; background: white; padding: 20px; border-radius: 12px; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div class="search-box" style="flex: 1; min-width: 300px;">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar por cualquier campo..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
                 </div>
-                <select id="categoryFilter"><option value="">All Categories</option></select>
-                <select id="statusFilter"><option value="">All Statuses</option></select>
-                <button onclick="loadAssetsData()">🔄 Refresh Data</button>
+                
+                <select id="typeFilter" style="padding: 10px; border-radius: 6px; border: 1px solid #ddd; min-width: 150px;">
+                    <option value="">All Categories</option>
+                </select>
+                
+                <select id="statusFilter" style="padding: 10px; border-radius: 6px; border: 1px solid #ddd; min-width: 150px;">
+                    <option value="">All Statuses</option>
+                </select>
+                
+                <select id="manufacturerFilter" style="padding: 10px; border-radius: 6px; border: 1px solid #ddd; min-width: 150px;">
+                    <option value="">All Vendors</option>
+                </select>
+
+                <button onclick="loadAssetsData()" style="padding: 10px 20px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold;">
+                    🔄 Refresh
+                </button>
             </div>
 
-            <div class="charts-container">
+            <div class="charts-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
                 <div class="chart-box">
-                    <h3 style="text-align: center; margin-top: 0; color: #555;">Asset Status Distribution</h3>
+                    <h3 style="text-align: center; margin-top: 0; color: #555;">Device Status</h3>
                     <canvas id="assetStatusChart"></canvas>
                 </div>
+                
                 <div class="chart-box">
-                    <h3 style="text-align: center; margin-top: 0; color: #555;">Assets by Category</h3>
-                    <canvas id="assetCategoryChart"></canvas>
+                    <h3 style="text-align: center; margin-top: 0; color: #555;">Device Types by Vendor</h3>
+                    <canvas id="assetTypeChart"></canvas>
+                </div>
+
+                <div class="chart-box" style="grid-column: span 2;">
+                    <h3 style="text-align: center; margin-top: 0; color: #555;">Purchases Timeline</h3>
+                    <canvas id="assetTimelineChart"></canvas>
+                </div>
+                
+                <div class="chart-box" style="grid-column: span 2;">
+                    <h3 style="text-align: center; margin-top: 0; color: #555;">Assets Investment by Country</h3>
+                    <div id="assetCountryMap" style="width: 100%; height: 400px;"></div>
                 </div>
             </div>
 
@@ -221,12 +245,7 @@
                 <table>
                     <thead>
                         <tr>                            
-                            <th>Asset Name</th>
-                            <th>Category</th>
-                            <th>Status</th>
-                            <th>Assigned To</th>
-                            <th>Next Maintenance</th>
-                            <th>Acquisition Cost</th>
+                            
                         </tr>
                     </thead>
                     <tbody id="assetsTableBody">
@@ -244,240 +263,22 @@
                 <h2 id="drilldownModalTitle">Asset Details</h2>
                 <button onclick="closeDrilldownModal()" class="close-btn">&times;</button>
             </div>
-            <div class="modal-body" style="overflow-x: auto;">
-                <table>
+            <div style="width: 100%; overflow-x: auto; border: 1px solid #ddd; border-radius: 8px;">
+                <table id="assetsTable" style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr>
-                            <th>Asset Name</th>
-                            <th>Category</th>
-                            <th>Status</th>
-                            <th>Assigned To</th>
-                            <th>Cost</th>
-                        </tr>
-                    </thead>
-                    <tbody id="drilldownModalTableBody"></tbody>
+                        </thead>
+                    <tbody id="assetsTableBody">
+                        </tbody>
                 </table>
             </div>
+            
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <script>
-        // ==========================================
-        // 1. CONFIGURACIÓN
-        // ==========================================
-        const SUPABASE_URL = 'https://uwaaekdsnaqwhwxyathc.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_SsvlcOJypZySsqeXm2mQjg_uu0o1m0x'; 
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let allAssets = [];
-        let assetCharts = {};
-
-        // ==========================================
-        // 2. GESTIÓN DE SESIÓN
-        // ==========================================
-        async function checkSession() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            const authContainer = document.getElementById('authContainer');
-            const dashboardContent = document.getElementById('dashboardContent');
-
-            if (session) {
-                if(authContainer) authContainer.style.display = 'none';
-                if(dashboardContent) dashboardContent.style.display = 'block';
-                loadAssetsData(); // Cargar datos solo si hay sesión
-            } else {
-                if(authContainer) authContainer.style.display = 'flex';
-                if(dashboardContent) dashboardContent.style.display = 'none';
-            }
-        }
-
-        async function handleLogin() {
-            const emailInput = document.getElementById('authEmail');
-            const passInput = document.getElementById('authPassword');
-            if (!emailInput || !passInput) return;
-
-            const { error } = await supabaseClient.auth.signInWithPassword({
-                email: emailInput.value,
-                password: passInput.value
-            });
-            if (error) alert(error.message);
-            else checkSession();
-        }
-
-        async function handleLogout() {
-            await supabaseClient.auth.signOut();
-            checkSession();
-        }
-
-        // ==========================================
-        // 3. CARGA Y FILTRADO DE DATOS
-        // ==========================================
-        async function loadAssetsData() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('assets_management')
-                    .select('*');
-
-                if (error) throw error;
-                allAssets = data || [];
-                
-                populateFilters(allAssets);
-                applyLocalFilters(); // Aplica filtros vacíos por defecto (muestra todo)
-
-            } catch (err) {
-                console.error("Critical Error:", err);
-                document.getElementById('assetsTableBody').innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${err.message}</td></tr>`;
-            }
-        }
-
-        function populateFilters(data) {
-            const categories = [...new Set(data.map(item => item.category).filter(Boolean))];
-            const statuses = [...new Set(data.map(item => item.status).filter(Boolean))];
-
-            fillSelect('categoryFilter', categories, 'All Categories');
-            fillSelect('statusFilter', statuses, 'All Statuses');
-        }
-
-        function fillSelect(id, items, defaultText) {
-            const select = document.getElementById(id);
-            if (!select) return;
-            const currentVal = select.value;
-            select.innerHTML = `<option value="">${defaultText}</option>`;
-            items.sort().forEach(item => {
-                const option = document.createElement('option');
-                option.value = item;
-                option.textContent = item;
-                if (item === currentVal) option.selected = true;
-                select.appendChild(option);
-            });
-        }
-
-        function applyLocalFilters() {
-            const searchVal = (document.getElementById('searchInput')?.value || '').toLowerCase();
-            const categoryVal = document.getElementById('categoryFilter')?.value || '';
-            const statusVal = document.getElementById('statusFilter')?.value || '';
-
-            const filtered = allAssets.filter(item => {
-                const matchCategory = !categoryVal || item.category === categoryVal;
-                const matchStatus = !statusVal || item.status === statusVal;
-                
-                const searchString = `${item.asset_name || ''} ${item.assigned_to || ''}`.toLowerCase();
-                const matchSearch = !searchVal || searchString.includes(searchVal);
-
-                return matchCategory && matchStatus && matchSearch;
-            });
-
-            updateAssetsKPIs(filtered);
-            renderAssetsCharts(filtered);
-            renderAssetsTable(filtered);
-        }
-
-        // ==========================================
-        // 4. KPIs Y GRÁFICOS
-        // ==========================================
-        function updateAssetsKPIs(data) {
-            let totalValue = 0, activeAssets = 0, pendingMaintenance = 0;
-            const sevenDaysFromNow = new Date();
-            sevenDaysFromNow.setDate(new Date().getDate() + 7);
-
-            data.forEach(asset => {
-                totalValue += parseFloat(asset.acquisition_cost) || 0;
-                if (asset.status === 'Active' || asset.status === 'Operativo') activeAssets++;
-                
-                if (asset.next_maintenance_date) {
-                    const maintDate = new Date(asset.next_maintenance_date + 'T12:00:00');
-                    if (maintDate <= sevenDaysFromNow && asset.status !== 'Disposed') {
-                        pendingMaintenance++;
-                    }
-                }
-            });
-
-            const setT = (id, val) => { if(document.getElementById(id)) document.getElementById(id).textContent = val; };
-            setT('totalAssetValue', totalValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }));
-            setT('totalAssets', data.length);
-            setT('activeAssets', activeAssets);
-            setT('pendingMaintenance', pendingMaintenance);
-        }
-
-        function renderAssetsCharts(data) {
-            const statusCounts = {};
-            const categoryCounts = {};
-
-            data.forEach(asset => {
-                const status = asset.status || 'Unknown';
-                const category = asset.category || 'Uncategorized';
-                statusCounts[status] = (statusCounts[status] || 0) + 1;
-                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-            });
-
-            const renderChart = (id, type, labels, datasetData, colors) => {
-                const canvas = document.getElementById(id);
-                if(!canvas) return;
-                if(assetCharts[id]) assetCharts[id].destroy();
-
-                assetCharts[id] = new Chart(canvas, {
-                    type: type,
-                    data: {
-                        labels: labels,
-                        datasets: [{ data: datasetData, backgroundColor: colors, borderWidth: 1 }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
-                });
-            };
-
-            renderChart('assetStatusChart', 'doughnut', Object.keys(statusCounts), Object.values(statusCounts), ['#2e7d32', '#f57c00', '#d32f2f', '#9e9e9e']);
-            renderChart('assetCategoryChart', 'bar', Object.keys(categoryCounts), Object.values(categoryCounts), '#1976d2');
-        }
-
-        // ==========================================
-        // 5. TABLA Y MODAL
-        // ==========================================
-        function renderAssetsTable(data) {
-            const tbody = document.getElementById('assetsTableBody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-
-            if(data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6">No assets found matching filters.</td></tr>';
-                return;
-            }
-
-            data.forEach(asset => {
-                const row = document.createElement('tr');
-                const cost = parseFloat(asset.acquisition_cost) || 0;
-                let statusColor = '#333';
-                if (asset.status === 'Active' || asset.status === 'Operativo') statusColor = 'var(--success)';
-                if (asset.status === 'Disposed' || asset.status === 'Baja') statusColor = 'var(--danger)';
-
-                row.innerHTML = `
-                    <td><strong>${asset.asset_name || 'N/A'}</strong></td>
-                    <td>${asset.category || '-'}</td>
-                    <td style="color: ${statusColor}; font-weight: 600;">${asset.status || '-'}</td>
-                    <td>${asset.assigned_to || 'Unassigned'}</td>
-                    <td>${asset.next_maintenance_date || '-'}</td>
-                    <td>$${cost.toLocaleString()}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function closeDrilldownModal() {
-            document.getElementById('drilldownModal').style.display = 'none';
-        }
-
-        // ==========================================
-        // 6. EVENTOS DE INICIALIZACIÓN
-        // ==========================================
-        document.addEventListener('DOMContentLoaded', () => {
-            ['categoryFilter', 'statusFilter'].forEach(id => {
-                document.getElementById(id)?.addEventListener('change', applyLocalFilters);
-            });
-            document.getElementById('searchInput')?.addEventListener('input', applyLocalFilters);
-            
-            checkSession();
-        });
-    </script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="assets.js"></script> 
 </body>
 </html>
