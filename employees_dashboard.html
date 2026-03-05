@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employees Management Dashboard</title>
+    <style>
+        :root {
+            --primary: #1976d2;
+            --success: #2e7d32;
+            --warning: #f57c00;
+            --danger: #d32f2f;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        /* Controles y Filtros */
+        .header { text-align: left; margin-bottom: 0; }
+        .filter-section { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; display: flex; flex-direction: column; gap: 15px; }
+        .search-box-container input { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .search-box-container input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+        .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .controls select, .controls button { flex: 1; min-width: 140px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .controls select { cursor: pointer; background-color: white; }
+        button { background: var(--primary); color: white; border: none; cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+
+        /* Tarjetas de Métricas */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--card-bg); padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        .stat-card h3 { margin: 10px 0; font-size: 28px; color: var(--primary); }
+        .stat-card p { margin: 0; font-size: 13px; color: #666; font-weight: 600; text-transform: uppercase; }
+        .highlight h3 { color: var(--success); }
+        .danger h3 { color: var(--danger); }
+
+        /* Contenedores de Gráficos */
+        .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .chart-box { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 350px; }
+        canvas { width: 100% !important; height: 300px !important; }
+
+        /* Tablas */
+        .table-container { background: var(--card-bg); padding: 20px; border-radius: 12px; overflow-x: auto; margin-top: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #f8f9fa; padding: 12px; font-size: 13px; border-bottom: 2px solid #eee; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: middle; }
+        tbody tr:nth-child(even) { background-color: #f8fafd; }
+        tbody tr:hover { background-color: #e3f2fd; }
+
+        /* Login & Modal */
+        #authContainer { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        .login-card input { width: 90%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <div id="authContainer">
+        <div class="login-card">
+            <h2 style="margin-top: 0;">👥 HR Dashboard</h2>
+            <input type="email" id="authEmail" placeholder="Email">
+            <input type="password" id="authPassword" placeholder="Password">
+            <button onclick="handleLogin()" style="width: 100%; padding: 12px; font-weight: bold;">Login</button>
+        </div>
+    </div>
+
+    <div id="dashboardContent" style="display: none;">
+        <div class="container">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="header">
+                    <h1 style="margin: 0;">👥 Employees Management</h1>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="home-btn" onclick="window.location.href='index.html'" style="background-color: var(--primary); padding: 8px 15px; border-radius: 6px;">🏠 Home</button>
+                    <button onclick="handleLogout()" style="background: var(--danger); padding: 8px 15px; border-radius: 6px;">Logout</button>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 id="totalEmployees">0</h3>
+                    <p>Total Employees</p>
+                </div>
+                <div class="stat-card highlight">
+                    <h3 id="activeEmployees">0</h3>
+                    <p>Active Staff</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalDepartments" style="color: var(--warning);">0</h3>
+                    <p>Departments</p>
+                </div>
+                <div class="stat-card danger">
+                    <h3 id="inactiveEmployees">0</h3>
+                    <p>Inactive / Terminated</p>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="search-box-container">
+                    <input type="text" id="searchInput" placeholder="🔍 Search by name, email, or designation...">
+                </div>
+
+                <div class="controls">                 
+                    <select id="departmentFilter">
+                        <option value="">All Departments</option>
+                    </select>
+
+                    <select id="statusFilter">
+                        <option value="">All Statuses</option>
+                    </select>
+
+                    <select id="typeFilter">
+                        <option value="">All Contract Types</option>
+                    </select>
+
+                    <button id="exportBtn" onclick="exportToCSV()" style="background-color: #2e7d32;">
+                        📥 Export CSV
+                    </button>
+                    
+                    <button id="refreshBtn" onclick="loadEmployeesData()" style="background-color: var(--primary);">
+                        🔄 Refresh
+                    </button>    
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-box">
+                    <h3 style="text-align: center; margin-top: 0; color: #555;">Employment Status</h3>
+                    <canvas id="empStatusChart"></canvas>
+                </div>
+                
+                <div class="chart-box">
+                    <h3 style="text-align: center; margin-top: 0; color: #555;">Employees by Department</h3>
+                    <canvas id="empDepartmentChart"></canvas>
+                </div>
+
+                <div class="chart-box" style="grid-column: span 2;">
+                    <h3 style="text-align: center; margin-top: 0; color: #555;">Contract Types Overview</h3>
+                    <canvas id="empTypeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <h3 style="text-align: left; margin-top: 0; color: #555;">Detailed Employee Directory</h3>
+                <table>
+                    <thead>
+                        <tr>                            
+                            <th>#</th> <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Designation</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Country</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeesTableBody">
+                        <tr><td colspan="9">Loading data...</td></tr> 
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="employees.js"></script> 
+</body>
+</html>
