@@ -96,7 +96,7 @@ function renderTable(data) {
         const ratingColor = d.cs_rating >= 4 ? 'var(--success)' : (d.cs_rating >= 3 ? 'var(--warning)' : 'var(--danger)');
         tbody.innerHTML += `
             <tr>
-                <td><strong>${d.display_name || d.name}</strong></td>
+                <td><strong>${d.name || d.name}</strong></td>
                 <td>${d.tax_id || '-'}</td>
                 <td>${d.hq_location || '-'}</td>
                 <td>${d.exec_contact_name || '-'}</td>
@@ -155,4 +155,5 @@ function exportToCSV() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'distributors_report.csv'; a.click();
+
 }
