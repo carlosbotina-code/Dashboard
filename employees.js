@@ -1,28 +1,18 @@
-// ==========================================
-// 1. CONFIGURACIÓN DE SUPABASE
-// ==========================================
 const SUPABASE_URL = 'https://uwaaekdsnaqwhwxyathc.supabase.co'; 
 const SUPABASE_ANON_KEY = 'sb_publishable_SsvlcOJypZySsqeXm2mQjg_uu0o1m0x'; 
 
-// Usamos window.supabase y le damos un nombre distinto a nuestra variable
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Variables Globales
 let employeesData = [];
 let charts = {};
 
-// ==========================================
-// 2. AUTENTICACIÓN
-// ==========================================
+// --- AUTENTICACIÓN ---
 async function handleLogin() {
     const email = document.getElementById('authEmail').value;
     const password = document.getElementById('authPassword').value;
-    
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-        alert('Login failed: ' + error.message);
-    } else {
+    if (error) alert('Login failed: ' + error.message);
+    else {
         document.getElementById('authContainer').style.display = 'none';
         document.getElementById('dashboardContent').style.display = 'block';
         loadEmployeesData();
@@ -35,7 +25,6 @@ async function handleLogout() {
     document.getElementById('authContainer').style.display = 'flex';
 }
 
-// Verificar sesión al cargar
 window.onload = async () => {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
@@ -45,216 +34,154 @@ window.onload = async () => {
     }
 };
 
-// ==========================================
-// 3. CARGA Y PROCESAMIENTO DE DATOS
-// ==========================================
+// --- CARGA DE DATOS ---
 async function loadEmployeesData() {
-    // Actualizamos el colspan a 9 para cubrir la nueva columna contadora
     document.getElementById('employeesTableBody').innerHTML = '<tr><td colspan="9">Loading data...</td></tr>';
-    
-    const { data, error } = await supabaseClient
-        .from('employees')
-        .select('*')
-        .order('first_name', { ascending: true });
-
-    if (error) {
-        console.error("Error fetching employees:", error);
-        alert("Failed to load data.");
-        return;
-    }
+    const { data, error } = await supabaseClient.from('employees').select('*').order('first_name', { ascending: true });
+    if (error) return console.error(error);
 
     employeesData = data || [];
-    
     updateKPIs();
     populateFilters();
     renderCharts();
     renderTable(employeesData);
 }
 
-// ==========================================
-// 4. KPIs Y FILTROS
-// ==========================================
 function updateKPIs() {
-    const total = employeesData.length;
-    const active = employeesData.filter(e => e.employment_status === 'Active').length;
-    const inactive = employeesData.filter(e => e.employment_status !== 'Active' && e.employment_status !== null).length;
-    
-    const departments = new Set(employeesData.map(e => e.department).filter(Boolean)).size;
-
-    document.getElementById('totalEmployees').innerText = total;
-    document.getElementById('activeEmployees').innerText = active;
-    document.getElementById('inactiveEmployees').innerText = inactive;
-    document.getElementById('totalDepartments').innerText = departments;
+    document.getElementById('totalEmployees').innerText = employeesData.length;
+    document.getElementById('activeEmployees').innerText = employeesData.filter(e => e.employment_status === 'Active').length;
+    document.getElementById('inactiveEmployees').innerText = employeesData.filter(e => e.employment_status !== 'Active' && e.employment_status !== null).length;
+    document.getElementById('totalDepartments').innerText = new Set(employeesData.map(e => e.department).filter(Boolean)).size;
 }
 
 function populateFilters() {
-    const populateSelect = (id, field) => {
+    const fields = { departmentFilter: 'department', statusFilter: 'employment_status', typeFilter: 'employee_type' };
+    Object.keys(fields).forEach(id => {
         const select = document.getElementById(id);
-        const uniqueValues = [...new Set(employeesData.map(item => item[field]).filter(Boolean))].sort();
-        select.innerHTML = `<option value="">All ${field.replace('_', ' ')}s</option>`;
-        uniqueValues.forEach(val => {
-            select.innerHTML += `<option value="${val}">${val}</option>`;
-        });
-    };
-
-    populateSelect('departmentFilter', 'department');
-    populateSelect('statusFilter', 'employment_status');
-    populateSelect('typeFilter', 'employee_type');
-
-    ['searchInput', 'departmentFilter', 'statusFilter', 'typeFilter'].forEach(id => {
-        document.getElementById(id).addEventListener('input', applyFilters);
+        const unique = [...new Set(employeesData.map(item => item[fields[id]]).filter(Boolean))].sort();
+        select.innerHTML = `<option value="">All ${fields[id].replace('_', ' ')}s</option>`;
+        unique.forEach(val => select.innerHTML += `<option value="${val}">${val}</option>`);
     });
+    ['searchInput', 'departmentFilter', 'statusFilter', 'typeFilter'].forEach(id => 
+        document.getElementById(id).addEventListener('input', applyFilters)
+    );
 }
 
 function applyFilters() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const deptFilter = document.getElementById('departmentFilter').value;
-    const statusFilter = document.getElementById('statusFilter').value;
-    const typeFilter = document.getElementById('typeFilter').value;
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const dept = document.getElementById('departmentFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    const type = document.getElementById('typeFilter').value;
 
-    const filteredData = employeesData.filter(emp => {
-        const matchesSearch = 
-            (emp.first_name || '').toLowerCase().includes(searchTerm) ||
-            (emp.last_name || '').toLowerCase().includes(searchTerm) ||
-            (emp.email || '').toLowerCase().includes(searchTerm) ||
-            (emp.designation || '').toLowerCase().includes(searchTerm);
-            
-        const matchesDept = deptFilter ? emp.department === deptFilter : true;
-        const matchesStatus = statusFilter ? emp.employment_status === statusFilter : true;
-        const matchesType = typeFilter ? emp.employee_type === typeFilter : true;
-
-        return matchesSearch && matchesDept && matchesStatus && matchesType;
+    const filtered = employeesData.filter(emp => {
+        const matchesSearch = (emp.first_name + ' ' + emp.last_name + emp.email + emp.designation).toLowerCase().includes(search);
+        return matchesSearch && (!dept || emp.department === dept) && (!status || emp.employment_status === status) && (!type || emp.employee_type === type);
     });
-
-    renderTable(filteredData);
+    renderTable(filtered);
 }
 
-// ==========================================
-// 5. RENDERIZADO DE TABLA Y GRÁFICOS
-// ==========================================
 function renderTable(data) {
     const tbody = document.getElementById('employeesTableBody');
-    tbody.innerHTML = '';
-
-    if(data.length === 0) {
-        // Actualizamos el colspan a 9 aquí también
-        tbody.innerHTML = '<tr><td colspan="9">No employees found matching the criteria.</td></tr>';
-        return;
-    }
-
-    // Usamos el index para crear el contador
+    tbody.innerHTML = data.length ? '' : '<tr><td colspan="9">No results found.</td></tr>';
     data.forEach((emp, index) => {
-        let statusColor = emp.employment_status === 'Active' ? 'color: #2e7d32; font-weight: bold;' : 'color: #d32f2f;';
-
-        const row = `<tr>
-            <td style="color: #666; font-size: 12px; font-weight: bold;">${index + 1}</td>
+        const sCol = emp.employment_status === 'Active' ? 'color: #2e7d32; font-weight: bold;' : 'color: #d32f2f;';
+        tbody.innerHTML += `<tr>
+            <td style="color: #666; font-weight: bold;">${index + 1}</td>
             <td>${emp.employee_id || '-'}</td>
             <td><strong>${emp.first_name || ''} ${emp.last_name || ''}</strong></td>
             <td>${emp.email || '-'}</td>
             <td>${emp.department || '-'}</td>
             <td>${emp.designation || '-'}</td>
             <td>${emp.employee_type || '-'}</td>
-            <td style="${statusColor}">${emp.employment_status || '-'}</td>
+            <td style="${sCol}">${emp.employment_status || '-'}</td>
             <td>${emp.country || '-'}</td>
         </tr>`;
-        tbody.innerHTML += row;
     });
 }
 
+// --- GRÁFICOS ---
 function renderCharts() {
-    Object.values(charts).forEach(chart => chart.destroy());
+    Object.values(charts).forEach(c => c.destroy());
 
-    // 1. Status Chart (Doughnut)
+    // 1. Status Chart
     const statusCounts = employeesData.reduce((acc, curr) => {
-        const status = curr.employment_status || 'Unknown';
-        acc[status] = (acc[status] || 0) + 1;
+        const s = curr.employment_status || 'Unknown';
+        acc[s] = (acc[s] || 0) + 1;
         return acc;
     }, {});
 
     charts.status = new Chart(document.getElementById('empStatusChart'), {
         type: 'doughnut',
-        data: {
-            labels: Object.keys(statusCounts),
-            datasets: [{
-                data: Object.values(statusCounts),
-                backgroundColor: ['#2e7d32', '#d32f2f', '#f57c00', '#9966FF', '#C9CBCF']
-            }]
-        }
+        data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#2e7d32', '#d32f2f', '#f57c00', '#9966FF'] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
     });
 
-    // 2. Department Chart (Bar)
+    // 2. Department Chart
     const deptCounts = employeesData.reduce((acc, curr) => {
-        const dept = curr.department || 'Unassigned';
-        acc[dept] = (acc[dept] || 0) + 1;
+        const d = curr.department || 'Unassigned';
+        acc[d] = (acc[d] || 0) + 1;
         return acc;
     }, {});
 
-    charts.department = new Chart(document.getElementById('empDepartmentChart'), {
+    charts.dept = new Chart(document.getElementById('empDepartmentChart'), {
         type: 'bar',
-        data: {
-            labels: Object.keys(deptCounts),
-            datasets: [{
-                label: 'Number of Employees',
-                data: Object.values(deptCounts),
-                backgroundColor: '#1976d2'
-            }]
-        },
-        options: { scales: { y: { beginAtZero: true } } }
+        data: { labels: Object.keys(deptCounts), datasets: [{ label: 'Employees', data: Object.values(deptCounts), backgroundColor: '#1976d2' }] },
+        options: { responsive: true, maintainAspectRatio: false }
     });
 
-    // 3. Employee Type (Bar Horizontal)
-    const typeCounts = employeesData.reduce((acc, curr) => {
-        const type = curr.employee_type || 'Unknown';
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-    }, {});
+    // 3. COMBINADO: Computer Requirement (GUA/INNO) + Status (Active/Inactive)
+    // Inicializamos el objeto para procesar ambos datos a la vez
+    const compStatusData = {
+        'Needs Computer': { active: 0, inactive: 0 },
+        'No Computer Needed': { active: 0, inactive: 0 }
+    };
 
-    charts.type = new Chart(document.getElementById('empTypeChart'), {
+    employeesData.forEach(emp => {
+        const id = (emp.employee_id || "").toUpperCase();
+        const category = (id.startsWith('GUA') || id.startsWith('INNO')) ? 'Needs Computer' : 'No Computer Needed';
+        const isActive = emp.employment_status === 'Active';
+        
+        if (isActive) compStatusData[category].active += 1;
+        else compStatusData[category].inactive += 1;
+    });
+
+    charts.computer = new Chart(document.getElementById('computerRequirementChart'), {
         type: 'bar',
-        data: {
-            labels: Object.keys(typeCounts),
-            datasets: [{
-                label: 'Headcount by Contract Type',
-                data: Object.values(typeCounts),
-                backgroundColor: '#f57c00'
-            }]
+        data: { 
+            labels: ['Needs Computer', 'No Computer Needed'], 
+            datasets: [
+                { 
+                    label: 'Active', 
+                    data: [compStatusData['Needs Computer'].active, compStatusData['No Computer Needed'].active], 
+                    backgroundColor: '#2e7d32' // Verde éxito
+                },
+                { 
+                    label: 'Inactive', 
+                    data: [compStatusData['Needs Computer'].inactive, compStatusData['No Computer Needed'].inactive], 
+                    backgroundColor: '#d32f2f' // Rojo peligro
+                }
+            ] 
         },
-        options: { indexAxis: 'y', scales: { x: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: { 
+                x: { stacked: true }, // Apilado para comparar proporciones
+                y: { stacked: true, beginAtZero: true } 
+            },
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
     });
 }
 
-// ==========================================
-// 6. EXPORTAR A CSV
-// ==========================================
 function exportToCSV() {
-    if (employeesData.length === 0) return alert('No data to export');
-    
-    // El CSV no necesita la columna contador, por lo que lo dejamos igual
-    const headers = ['Employee ID', 'First Name', 'Last Name', 'Email', 'Department', 'Designation', 'Status', 'Type', 'Country'];
-    const csvRows = [headers.join(',')];
-    
-    employeesData.forEach(emp => {
-        const row = [
-            emp.employee_id,
-            `"${emp.first_name || ''}"`,
-            `"${emp.last_name || ''}"`,
-            emp.email,
-            `"${emp.department || ''}"`,
-            `"${emp.designation || ''}"`,
-            emp.employment_status,
-            emp.employee_type,
-            emp.country
-        ];
-        csvRows.push(row.join(','));
-    });
-    
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    if (!employeesData.length) return alert('No data');
+    const headers = ['ID', 'First Name', 'Last Name', 'Email', 'Dept', 'Status'];
+    const rows = [headers.join(','), ...employeesData.map(e => `${e.employee_id},${e.first_name},${e.last_name},${e.email},${e.department},${e.employment_status}`)];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', 'employees_report.csv');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = 'report.csv'; a.click();
 }
