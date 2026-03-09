@@ -158,7 +158,7 @@ function renderAssetsCharts(data) {
     const statusData = {};
     const typeVendorData = {};
     const timelineData = {};
-    const countryDataMap = {}; // Cambiado nombre para evitar colisión
+    const countryDataMap = {};
 
     data.forEach(asset => {
         const cost = parseFloat(asset.purchase_price) || 0;
@@ -328,69 +328,58 @@ function renderAssetsTable(data) {
         return;
     }
 
-    // Columnas a excluir
     const excludedColumns = [
         'modified_time', 'updated_at', 'created_time', 'approval_status', 
-        'added_time', 'proof_of_purchase_url', 'zoho_id', 'warehouse', 'id','drive_proof_of_purchase'
+        'added_time', 'proof_of_purchase_url', 'warehouse', 'id', 'drive_proof_of_purchase' 
     ];
 
     const allKeys = Object.keys(data[0]);
     const columns = allKeys.filter(key => !excludedColumns.includes(key));
 
-    // Mapeo de nombres amigables
     const columnAlias = {
-        'device_model': 'device model',
-        'assigned_to': 'assigned to',
-        'possession_of': 'possession of',
-        'country': 'country',
-        'client_name': 'client name',
-        'purchase_date': 'purchase date',
-        'serial_number': 'serial number',
-        'manufacturer': 'manufacturer',
-        'purchased_from': 'purchased from',
-        'device_condition': 'device condition'
+        'device_model': 'device model', 'assigned_to': 'assigned to',
+        'possession_of': 'possession of', 'country': 'country',
+        'client_name': 'client name', 'purchase_date': 'purchase date',
+        'serial_number': 'serial number', 'manufacturer': 'manufacturer',
+        'purchased_from': 'purchased from', 'device_condition': 'device condition'
     };
 
-    // Renderizar Encabezado
     let thead = tableElement.querySelector('thead');
     if (thead) {
+        let headersHTML = columns.map(col => {
+            const displayName = columnAlias[col] || col.replace(/_/g, ' ').toLowerCase();
+            return `<th style="padding: 12px; border-bottom: 2px solid #eee; text-align: center;">${displayName}</th>`;
+        }).join('');
+        
         thead.innerHTML = `
             <tr>
                 <th style="padding: 12px; background-color: #f8f9fa; border-bottom: 2px solid #eee;">nº</th>
                 <th style="padding: 12px; background-color: #f8f9fa; border-bottom: 2px solid #eee;">actions</th>
-                ${columns.map(col => {
-                    // Usa el alias o formatea el nombre original
-                    const displayName = columnAlias[col] || col.replace(/_/g, ' ').toLowerCase();
-                    return `
-                        <th style="padding: 12px; border-bottom: 2px solid #eee; text-align: center;">
-                            ${displayName}
-                        </th>
-                    `;
-                }).join('')}
+                ${headersHTML}
             </tr>
         `;
     }
 
-    // Renderizar Filas
     data.forEach((asset, index) => {
         const row = document.createElement('tr');
         
-        // Columna de Número e Iconos de Acción (Edit/Delete)
+        // Ahora usamos ÚNICAMENTE zoho_id
+        const recordId = asset.zoho_id;
+        
         let rowHTML = `
             <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-weight: bold; color: #666;">${index + 1}</td>
             <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; white-space: nowrap;">
-                <button onclick='openAssetModal(${JSON.stringify(asset)})' 
+                <button onclick="openAssetModalById('${recordId}')" 
                         style="padding: 5px 8px; background: rgb(0, 118, 245); color: white; border-radius: 4px; margin-right: 5px; font-size: 12px; border: none; cursor: pointer;">
                     ✏️
                 </button>
-                <button onclick="deleteAsset('${asset.id}')" 
+                <button onclick="deleteAsset('${recordId}')" 
                         style="padding: 5px 8px; background: #d32f2f; color: white; border-radius: 4px; font-size: 12px; border: none; cursor: pointer;">
                     🗑️
                 </button>
             </td>
         `;
 
-        // Celdas de datos dinámicas
         rowHTML += columns.map(col => {
             let val = asset[col] ?? '-';
             let style = "padding: 12px; border-bottom: 1px solid #eee; white-space: nowrap; text-align: center;";
@@ -426,6 +415,13 @@ function renderAssetsTable(data) {
     updateTopScroll(tableContainer, tableElement);
 }
 
+// Buscamos el asset específico usando SOLO zoho_id
+window.openAssetModalById = function(recordId) {
+    const dataToSearch = window.currentFilteredData || allAssets;
+    const asset = dataToSearch.find(a => a.zoho_id === recordId);
+    openAssetModal(asset);
+};
+
 // Función auxiliar para el scroll superior
 function updateTopScroll(container, table) {
     let topScroll = document.getElementById('topScrollWrapper');
@@ -459,7 +455,7 @@ function exportToCSV() {
     const data = window.currentFilteredData || allAssets;
     if (!data.length) return;
 
-    const excludedColumns = ['modified_time', 'updated_at', 'created_time', 'approval_status', 'added_time', 'proof_of_purchase_url', 'zoho_id', 'warehouse'];
+    const excludedColumns = ['modified_time', 'updated_at', 'created_time', 'approval_status', 'added_time', 'proof_of_purchase_url', 'warehouse'];
     const columns = Object.keys(data[0]).filter(key => !excludedColumns.includes(key));
 
     let csvContent = "\uFEFF"; 
@@ -481,33 +477,27 @@ function exportToCSV() {
     link.click();
 }
 
-function generateLegacyId(serial) {
-    const now = new Date();
-    // Formato: AAAAMMDDHHMMSS (ej: 202603060530)
-    const timestamp = now.getFullYear().toString() +
-        (now.getMonth() + 1).toString().padStart(2, '0') +
-        now.getDate().toString().padStart(2, '0') +
-        now.getHours().toString().padStart(2, '0') +
-        now.getMinutes().toString().padStart(2, '0');
-
-    // Limpiamos el serial de espacios y tomamos los últimos 4 caracteres
-    const cleanSerial = (serial || "NOSERIAL").replace(/\s+/g, '').toUpperCase();
-    
-    // Resultado: SERIAL-TIMESTAMP (ej: ABC1234-202603060530)
-    return `${cleanSerial}-${timestamp}`;
-}
-
-// --- MANEJO DEL MODAL ---
+// ==========================================
+// 7. MODALS & DATA SAVING
+// ==========================================
 function openAssetModal(asset = null) {
     const modal = document.getElementById('assetModal');
     const form = document.getElementById('assetForm');
     modal.style.display = 'flex';
     
     if (asset) {
-        document.getElementById('editAssetId').value = asset.id || '';
-        // Cargamos device_model en el campo de Asset Name
-        document.getElementById('form_asset_name').value = asset.device_model || '';
-        // ... resto de los campos
+        document.getElementById('editAssetId').value = asset.zoho_id || '';
+        document.getElementById('form_device_model').value = asset.device_model || '';
+        document.getElementById('form_serial_number').value = asset.serial_number || '';
+        document.getElementById('form_device_type').value = asset.device_type || 'Other';
+        document.getElementById('form_assigned_to').value = asset.assigned_to || '';
+        document.getElementById('form_possession_of').value = asset.possession_of || '';
+        document.getElementById('form_country').value = asset.country || 'USA';
+        document.getElementById('form_purchased_from').value = asset.purchased_from || '';
+        document.getElementById('form_purchase_price').value = asset.purchase_price || '';
+        document.getElementById('form_purchase_date').value = asset.purchase_date ? asset.purchase_date.split('T')[0] : '';
+        document.getElementById('form_device_status').value = asset.device_status || 'In Service';
+        document.getElementById('form_device_condition').value = asset.device_condition || 'New';
     } else {
         form.reset();
         document.getElementById('editAssetId').value = '';
@@ -518,17 +508,13 @@ function closeAssetModal() {
     document.getElementById('assetModal').style.display = 'none';
 }
 
-// --- GUARDAR (CREATE / UPDATE) ---
 async function saveAsset(event) {
-    event.preventDefault();
-    const id = document.getElementById('editAssetId')?.value;
+    event.preventDefault(); // Evita que la página recargue
+    const recordId = document.getElementById('editAssetId')?.value;
     const serial = document.getElementById('form_serial_number')?.value;
 
     const assetData = {
-        // Generamos el ID aleatorio basado en Serial + Fecha
-        zoho_id: generateLegacyId(serial), 
-        
-        device_model: document.getElementById('form_asset_name')?.value || '',
+        device_model: document.getElementById('form_device_model')?.value || '',
         serial_number: serial,
         device_type: document.getElementById('form_device_type')?.value || '',
         country: document.getElementById('form_country')?.value || '',
@@ -544,18 +530,17 @@ async function saveAsset(event) {
 
     try {
         let result;
-        if (id && id.trim() !== "") {
-            // Si editamos, no cambiamos el zoho_id original, solo el resto
-            delete assetData.zoho_id; 
-            result = await supabaseClient.from('assets_management').update(assetData).eq('id', id);
+        if (recordId && recordId.trim() !== "") {
+            // Es un UPDATE. Hacemos match directamente con zoho_id
+            result = await supabaseClient.from('assets_management').update(assetData).eq('zoho_id', recordId).select();
         } else {
-            // Si es nuevo, enviamos el zoho_id generado
-            result = await supabaseClient.from('assets_management').insert([assetData]);
+            // Es un INSERT
+            result = await supabaseClient.from('assets_management').insert([assetData]).select();
         }
 
         if (result.error) throw result.error;
         
-        alert('Asset saved successfully with ID: ' + assetData.zoho_id);
+        alert('Asset saved successfully!');
         closeAssetModal();
         loadAssetsData();
     } catch (err) {
@@ -563,12 +548,13 @@ async function saveAsset(event) {
     }
 }
 
-// --- ELIMINAR ---
-async function deleteAsset(id) {
+async function deleteAsset(recordId) {
     if (!confirm('Are you sure you want to delete this asset? This action cannot be undone.')) return;
 
     try {
-        const { error } = await supabaseClient.from('assets_management').delete().eq('id', id);
+        // Borramos haciendo match directamente con zoho_id
+        const { error } = await supabaseClient.from('assets_management').delete().eq('zoho_id', recordId);
+        
         if (error) throw error;
         
         alert('Asset deleted.');
@@ -578,16 +564,16 @@ async function deleteAsset(id) {
     }
 }
 
-// 7. EVENTS
+// ==========================================
+// 8. EVENTS
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // THIS LINE IS CRITICAL: Connects the Save button to the function
-    document.getElementById('assetForm')?.addEventListener('submit', saveAsset);
-
+    // Escuchadores de Filtros y Buscador
     document.getElementById('searchInput')?.addEventListener('input', applyLocalFilters);
     ['typeFilter', 'statusFilter', 'conditionFilter', 'countryFilter', 'manufacturerFilter'].forEach(id => {
         document.getElementById(id)?.addEventListener('change', applyLocalFilters);
     });
+    
+    // Validamos la sesión al iniciar
     checkSession();
 });
-
