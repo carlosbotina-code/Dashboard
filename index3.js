@@ -546,7 +546,7 @@ async function handleNewPeriod(event) {
     // 2. VALIDACIÓN: Verificar que ningún campo esté vacío
     // .value.trim() elimina espacios en blanco. 
     if (!yearInput.value || !monthInput.value || !recruitingInput.value || 
-        !staffInput.value || !proServInput.value || !guardInput.value || 
+        !staffInput.value  || !guardInput.value || 
         !miscInput.value || !grossInput.value || !netInput.value) {
         
         alert('⚠️ All fields are required. Please do not leave any field blank.');
